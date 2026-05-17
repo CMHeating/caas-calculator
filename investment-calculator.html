@@ -184,14 +184,13 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
     <div class="input-card">
       <h3>💰 Money to Invest</h3>
       <div class="field">
-        <div class="lbl">Lump sum (day 1) <span class="tip" data-tip="The amount being invested on day one instead of spending it on a system purchase.">?</span></div>
-        <div class="iw d"><input type="number" id="lumpSum" value="0" min="0" step="100" oninput="autoCalc()"></div>
+        <div class="lbl">HVAC System Cost <span class="tip" data-tip="Enter the system cost — this becomes the lump sum invested instead of spent on the system.">?</span></div>
+        <div class="iw d"><input type="number" id="lumpSum" value="0" min="0" step="100" oninput="mirrorHVAC('lump')"></div>
       </div>
       <div class="field">
-        <div class="lbl">HVAC system cost (before taxes) <span class="tip" data-tip="Total installed cost — equipment, labor, and permits. 10% tax is added automatically.">?</span></div>
-        <div class="iw d"><input type="number" id="buyCost" value="28000" min="0" step="100" oninput="autoCalc()"></div>
+        <div class="iw d"><input type="number" id="buyCost" value="0" min="0" step="100" oninput="mirrorHVAC('buy')" style="display:none"></div>
         <div id="buy-cost-with-tax" style="font-size:12px;font-weight:600;color:var(--amber);margin-top:5px;padding:5px 8px;background:#fdf5e8;border-radius:5px;display:none">
-          With 10% tax: <span id="buy-cost-tax-total">—</span>
+          HVAC System Cost (including tax): <span id="buy-cost-tax-total">—</span>
         </div>
       </div>
     </div>
@@ -375,6 +374,12 @@ function switchTab(t, btn){
   document.querySelectorAll('.ctab').forEach(function(b){ b.classList.remove('active'); });
   btn.classList.add('active');
   renderChart();
+}
+
+function mirrorHVAC(source) {
+  var val = parseFloat(document.getElementById('lumpSum').value) || 0;
+  document.getElementById('buyCost').value = val;
+  autoCalc();
 }
 
 function autoCalc(){
