@@ -578,10 +578,20 @@ function renderChart(){
 }
 
 document.addEventListener('DOMContentLoaded', function(){
-  selectPreset_return(); // just trigger autoCalc defaults
+  // Pre-fill from URL params if coming from CaaS vs Buy
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('lumpSum')) {
+    var ls = parseFloat(params.get('lumpSum'));
+    if (ls > 0) {
+      document.getElementById('lumpSum').value = ls;
+      // Show a context banner
+      var banner = document.createElement('div');
+      banner.style.cssText = 'background:#eef1f8;border:1.5px solid #1a3560;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#1a3560;font-weight:600';
+      banner.textContent = '💰 Pre-filled from CaaS vs Buy — showing what $' + ls.toLocaleString() + ' grows to if invested instead of spent on the system.';
+      document.querySelector('.wrap').insertBefore(banner, document.querySelector('.intro-banner'));
+    }
+  }
 });
-
-function selectPreset_return(){}
 </script>
 </body>
 </html>

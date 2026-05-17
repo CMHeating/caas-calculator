@@ -76,6 +76,18 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
 .path-btn:hover{border-color:var(--navy)}
 .path-btn.active{border-color:var(--navy);background:var(--navy);color:#fff}
 
+/* Decision tree */
+.path-tree{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:0}
+.path-option{border:1.5px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:all .15s;background:#faf8f5}
+.path-option:hover{border-color:var(--navy)}
+.path-option.active{border-color:var(--navy);background:#eef1f8}
+.path-opt-head{display:flex;align-items:center;gap:7px;margin-bottom:4px}
+.path-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;transition:all .15s}
+.path-option.active .path-dot{border-color:var(--navy);background:var(--navy)}
+.path-opt-title{font-size:13px;font-weight:700;color:var(--text)}
+.path-opt-desc{font-size:11px;color:var(--muted);line-height:1.4;margin-left:21px}
+.path-residual{margin-top:10px;margin-left:21px}
+
 /* ── CONTROLS ── */
 .ctrl-row{display:flex;align-items:center;gap:12px;margin-bottom:26px;flex-wrap:wrap}
 .period-wrap{display:flex;align-items:center;gap:9px;background:var(--white);border-radius:8px;padding:8px 13px;box-shadow:var(--shadow)}
@@ -206,19 +218,46 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
           <div class="lbl">System price <span class="tip" data-tip="Total installed cost — equipment, labor, and permits">?</span></div>
           <div class="iw d"><input type="number" id="buyPrice" value="8500" min="0" step="100" oninput="autoCalc()"></div>
         </div>
-        <div class="field">
-            <div class="lbl">Interest rate <span class="tip" data-tip="Annual financing rate. Typical: 9.99%–14.99%">?</span></div>
-            <div class="iw p"><input type="number" id="apr" value="9.99" min="0" max="30" step="0.01" oninput="autoCalc()"></div>
+
+        <div class="div"></div>
+        <div class="sub">How would they pay?</div>
+
+        <div class="path-tree">
+          <div class="path-option active" id="buy-opt-finance" onclick="setBuyPath('finance')">
+            <div class="path-opt-head">
+              <div class="path-dot"></div>
+              <div class="path-opt-title">Finance it</div>
+            </div>
+            <div class="path-opt-desc">Monthly payments — interest adds to total cost</div>
+            <div id="finance-inputs" style="margin-top:10px;margin-left:21px">
+              <div class="lbl" style="margin-bottom:4px">Interest rate <span class="tip" data-tip="Annual financing rate. Typical: 9.99%–14.99%">?</span></div>
+              <div class="iw p" style="margin-bottom:8px"><input type="number" id="apr" value="9.99" min="0" max="30" step="0.01" oninput="autoCalc()" onclick="event.stopPropagation()"></div>
+              <div class="lbl" style="margin-bottom:4px">Loan term</div>
+              <select id="loanTerm" onchange="autoCalc()" onclick="event.stopPropagation()" style="width:100%">
+                <option value="60">5 years (60 mo)</option>
+                <option value="84">7 years (84 mo)</option>
+                <option value="120" selected>10 years (120 mo)</option>
+                <option value="180">15 years (180 mo)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="path-option" id="buy-opt-cash" onclick="setBuyPath('cash')">
+            <div class="path-opt-head">
+              <div class="path-dot"></div>
+              <div class="path-opt-title">Write a check</div>
+            </div>
+            <div class="path-opt-desc">Full price paid upfront — no interest, no monthly payment</div>
+            <div id="invest-link" style="display:none;margin-top:10px;margin-left:21px">
+              <a id="invest-href" href="investment-calculator.html" target="_blank"
+                style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:#1a3560;text-decoration:none;padding:6px 10px;background:#eef1f8;border-radius:6px;border:1.5px solid #1a3560"
+                onclick="event.stopPropagation()">
+                📈 See what this grows to if invested →
+              </a>
+            </div>
+          </div>
         </div>
-        <div class="field">
-          <div class="lbl">Loan term <span class="tip" data-tip="How long they finance the system">?</span></div>
-          <select id="loanTerm" onchange="autoCalc()">
-            <option value="60">5 years (60 months)</option>
-            <option value="84">7 years (84 months)</option>
-            <option value="120" selected>10 years (120 months)</option>
-            <option value="180">15 years (180 months)</option>
-          </select>
-        </div>
+
         <div class="div"></div>
         <div class="sub">Annual ownership costs</div>
         <div class="two">
@@ -236,6 +275,10 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
             <div class="lbl">Repair budget / yr <span class="tip" data-tip="Average annual repair cost. Grows as system ages. Industry avg: $150–$400/yr">?</span></div>
             <div class="iw d"><input type="number" id="annualRepairs" value="150" min="0" step="10" oninput="autoCalc()"></div>
           </div>
+          <div class="field">
+            <div class="lbl">IAQ / UV bulbs / yr <span class="tip" data-tip="Annual cost for UV bulb replacement and IAQ consumables.">?</span></div>
+            <div class="iw d"><input type="number" id="annualIAQ" value="0" min="0" step="10" oninput="autoCalc()"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -251,40 +294,43 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
           <div class="lbl">Monthly payment <span class="tip" data-tip="Customer's monthly CaaS payment during the contract term">?</span></div>
           <div class="iw d"><input type="number" id="caasMonthly" value="99" min="0" step="5" oninput="autoCalc()"></div>
         </div>
-        <div class="two">
-          <div class="field">
-            <div class="lbl">Contract term <span class="tip" data-tip="How many months they pay the full monthly rate">?</span></div>
-            <select id="caasTermMonths" onchange="autoCalc()">
-              <option value="60">5 yr (60 mo)</option>
-              <option value="84">7 yr (84 mo)</option>
-              <option value="96" selected>8 yr (96 mo)</option>
-              <option value="120">10 yr (120 mo)</option>
-            </select>
-          </div>
-          <div class="field">
-            <div class="lbl">Post-term / mo <span class="tip" data-tip="Monthly fee after contract ends — ongoing service and eventual replacement.">?</span></div>
-            <div class="iw d"><input type="number" id="caasPost" value="39" min="0" step="5" oninput="autoCalc()"></div>
-          </div>
+        <div class="field">
+          <div class="lbl">Contract term <span class="tip" data-tip="How many months they pay the full monthly rate">?</span></div>
+          <select id="caasTermMonths" onchange="autoCalc()">
+            <option value="60">5 yr (60 mo)</option>
+            <option value="84">7 yr (84 mo)</option>
+            <option value="96" selected>8 yr (96 mo)</option>
+            <option value="120">10 yr (120 mo)</option>
+          </select>
         </div>
+
         <div class="div"></div>
-        <div class="sub">At end of contract (month 96)</div>
+        <div class="sub">At end of contract — customer chooses</div>
 
-        <div class="field">
-          <div class="lbl">Residual amount <span class="tip" data-tip="Lump sum from the contract to pay off and own the equipment at month 96.">?</span></div>
-          <div class="iw d"><input type="number" id="caasResidual" value="0" min="0" step="100" oninput="autoCalc()"></div>
-        </div>
-
-        <div class="field">
-          <div class="lbl">Customer path <span class="tip" data-tip="Pay off the residual at month 96 and own the equipment, or continue payments through month 180.">?</span></div>
-          <div style="display:flex;gap:6px">
-            <button class="path-btn active" id="path-payoff" onclick="setPath('payoff')">Pay off at mo. 96</button>
-            <button class="path-btn" id="path-continue" onclick="setPath('continue')">Continue to mo. 180</button>
+        <div class="path-tree">
+          <div class="path-option active" id="path-opt-payoff" onclick="setPath('payoff')">
+            <div class="path-opt-head">
+              <div class="path-dot"></div>
+              <div class="path-opt-title">Pay off residual</div>
+            </div>
+            <div class="path-opt-desc">Lump sum from contract — owns equipment outright</div>
+            <div class="path-residual">
+              <div class="lbl" style="margin-bottom:4px;margin-top:8px">Residual amount <span class="tip" data-tip="Lump sum from the contract to pay off and own the equipment.">?</span></div>
+              <div class="iw d"><input type="number" id="caasResidual" value="0" min="0" step="100" oninput="autoCalc()" onclick="event.stopPropagation()"></div>
+            </div>
+          </div>
+          <div class="path-option" id="path-opt-continue" onclick="setPath('continue')">
+            <div class="path-opt-head">
+              <div class="path-dot"></div>
+              <div class="path-opt-title">Continue to year 15</div>
+            </div>
+            <div class="path-opt-desc">Same monthly payment continues through month 180, then contract ends</div>
           </div>
         </div>
 
         <div class="div"></div>
         <div class="sub">What's included in CaaS?</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:11px">Uncheck anything <em>not</em> covered — those costs will be added to the CaaS monthly.</p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:11px">Uncheck anything <em>not</em> covered — those costs will be added to the monthly.</p>
         <div class="checks">
           <label class="chk">
             <input type="checkbox" id="cMaint" checked onchange="autoCalc()">
@@ -386,22 +432,42 @@ var period = 15;
 var tab = 'cum';
 var chartInst = null;
 var activePreset = 'good';
-var caasPath = 'payoff'; // 'payoff' or 'continue'
+var caasPath = 'payoff';
+var buyPath  = 'finance';
 var S = { buyC:[], caasC:[], buyM:[], caasM:[], labels:[] };
 
 function setPath(path) {
   caasPath = path;
-  document.getElementById('path-payoff').classList.toggle('active', path === 'payoff');
-  document.getElementById('path-continue').classList.toggle('active', path === 'continue');
+  document.getElementById('path-opt-payoff').classList.toggle('active', path === 'payoff');
+  document.getElementById('path-opt-continue').classList.toggle('active', path === 'continue');
+  // Clear residual when switching to continue
+  if (path === 'continue') {
+    document.getElementById('caasResidual').value = 0;
+  }
+  autoCalc();
+}
+
+function setBuyPath(path) {
+  buyPath = path;
+  document.getElementById('buy-opt-finance').classList.toggle('active', path === 'finance');
+  document.getElementById('buy-opt-cash').classList.toggle('active', path === 'cash');
+  document.getElementById('finance-inputs').style.display = path === 'finance' ? 'block' : 'none';
+  var investLink = document.getElementById('invest-link');
+  investLink.style.display = path === 'cash' ? 'block' : 'none';
+  // Update invest link URL with current system price
+  if (path === 'cash') {
+    var price = document.getElementById('buyPrice').value || 0;
+    document.getElementById('invest-href').href = 'investment-calculator.html?lumpSum=' + price;
+  }
   autoCalc();
 }
 
 // Default values per tier (price editable, rest are defaults)
 var TIER_DEFAULTS = {
-  value:  { apr:9.99, loanTerm:84,  annualMaint:199, annualFilters:80,  annualRepairs:120, caasMonthly:79,  caasTermMonths:96, caasPost:29 },
-  good:   { apr:9.99, loanTerm:84,  annualMaint:249, annualFilters:100, annualRepairs:150, caasMonthly:99,  caasTermMonths:96, caasPost:39 },
-  better: { apr:9.99, loanTerm:120, annualMaint:299, annualFilters:120, annualRepairs:200, caasMonthly:149, caasTermMonths:96, caasPost:49 },
-  best:   { apr:9.99, loanTerm:120, annualMaint:349, annualFilters:160, annualRepairs:250, caasMonthly:199, caasTermMonths:96, caasPost:59 },
+  value:  { apr:9.99, loanTerm:84,  annualMaint:199, annualFilters:80,  annualRepairs:120, caasMonthly:79,  caasTermMonths:96 },
+  good:   { apr:9.99, loanTerm:84,  annualMaint:249, annualFilters:100, annualRepairs:150, caasMonthly:99,  caasTermMonths:96 },
+  better: { apr:9.99, loanTerm:120, annualMaint:299, annualFilters:120, annualRepairs:200, caasMonthly:149, caasTermMonths:96 },
+  best:   { apr:9.99, loanTerm:120, annualMaint:349, annualFilters:160, annualRepairs:250, caasMonthly:199, caasTermMonths:96 },
 };
 
 var TIER_LABELS = { value:'Value', good:'Good', better:'Better', best:'Best', custom:'Custom' };
@@ -428,7 +494,6 @@ function selectPreset(name, btn) {
   document.getElementById('annualRepairs').value = d.annualRepairs;
   document.getElementById('caasMonthly').value   = d.caasMonthly;
   document.getElementById('caasTermMonths').value= d.caasTermMonths;
-  document.getElementById('caasPost').value      = d.caasPost;
 
   autoCalc();
 }
@@ -459,54 +524,79 @@ function gc(id) { return document.getElementById(id).checked; }
 
 function calc() {
   var bp  = gv('buyPrice');
-  var dp  = 0;
-  var apr = gv('apr') / 100 / 12;
-  var lt  = gi('loanTerm') || 120;
+  var apr = buyPath === 'cash' ? 0 : gv('apr') / 100 / 12;
+  var lt  = buyPath === 'cash' ? 0 : (gi('loanTerm') || 120);
   var mnt = gv('annualMaint');
   var flt = gv('annualFilters');
   var rep = gv('annualRepairs');
-  var uv  = 0;
+  var iaq = gv('annualIAQ');
   var cmo = gv('caasMonthly');
   var ctm = gi('caasTermMonths') || 96;
-  var cpt = gv('caasPost');
   var residual = gv('caasResidual');
   var cMaint   = gc('cMaint');
   var cFilters = gc('cFilters');
   var cRepairs = gc('cRepairs');
 
+  // Keep invest link updated with current price
+  if (buyPath === 'cash' && bp > 0) {
+    document.getElementById('invest-href').href = 'investment-calculator.html?lumpSum=' + Math.round(bp);
+  }
+
   var months = period * 12;
-  var principal = bp - dp;
+  var principal = bp;
   var lp = 0;
-  if (apr > 0 && principal > 0) {
+  if (buyPath === 'finance' && apr > 0 && principal > 0) {
     lp = principal * apr * Math.pow(1+apr,lt) / (Math.pow(1+apr,lt)-1);
-  } else if (principal > 0) {
+  } else if (buyPath === 'finance' && principal > 0) {
     lp = principal / lt;
   }
 
-  var mMnt = mnt/12, mFlt = flt/12, mRep = rep/12;
-  var buyC = [dp+uv], caasC = [0], buyM = [dp+uv], caasM = [0];
+  var mMnt = mnt/12, mFlt = flt/12, mRep = rep/12, mIAQ = iaq/12;
+
+  // ── BUY ──
+  // Cash: full price at month 0, then just ownership costs
+  // Finance: loan payment each month until lt, then just ownership costs
+  var buyC = [buyPath === 'cash' ? bp : 0], buyM = [buyPath === 'cash' ? bp : 0];
+  for (var m = 1; m <= months; m++) {
+    var bm = (buyPath === 'finance' && m <= lt ? lp : 0) + mMnt + mFlt + mRep + mIAQ;
+    buyM.push(bm);
+    buyC.push(buyC[m-1] + bm);
+  }
+
+  // ── CaaS: clean month-by-month, no doubling ──
+  // During contract: cmo + unchecked items
+  // Path A (payoff): residual added ONCE at month ctm, then $0 (customer owns system,
+  //   they now pay for any items that weren't included in CaaS)
+  // Path B (continue): cmo + unchecked items through month 180, then $0
+  var caasC = [0], caasM = [0];
+  var contractEnd = caasPath === 'continue' ? 180 : ctm;
 
   for (var m = 1; m <= months; m++) {
-    var bm = (m<=lt ? lp : 0) + mMnt + mFlt + mRep;
-    buyM.push(bm); buyC.push(buyC[m-1]+bm);
-    var cm = (m <= ctm ? cmo : cpt);
-    // After contract term: apply residual path
-    if (m === ctm + 1) {
-      if (caasPath === 'payoff') {
-        // Residual paid as lump — add to this month, then drop to post-term fee
-        caasC[caasC.length - 1] += residual;
-        cm = cpt;
-      } else {
-        // Continue paying — same monthly until month 180, then post-term
-        cm = m <= 180 ? cmo : cpt;
-      }
-    } else if (m > ctm) {
-      cm = caasPath === 'continue' && m <= 180 ? cmo : cpt;
+    var cm = 0;
+
+    if (m <= contractEnd) {
+      // Inside contract: pay monthly CaaS + any uncovered items
+      cm = cmo;
+      if (!cMaint)   cm += mMnt;
+      if (!cFilters) cm += mFlt;
+      if (!cRepairs) cm += mRep;
+      // IAQ: always on customer if not in contract (assume not included)
+      cm += mIAQ;
+    } else {
+      // After contract ends — customer owns system, pays own costs
+      cm = mMnt + mFlt + mRep + mIAQ;
     }
-    if (!cMaint)   cm += mMnt;
-    if (!cFilters) cm += mFlt;
-    if (!cRepairs) cm += mRep;
-    caasM.push(cm); caasC.push(caasC[m-1]+cm);
+
+    caasM.push(cm);
+    caasC.push(caasC[m-1] + cm);
+  }
+
+  // Add residual as a one-time lump at contract end month (path A only)
+  if (caasPath === 'payoff' && residual > 0 && ctm <= months) {
+    for (var i = ctm; i <= months; i++) {
+      caasC[i] += residual;
+    }
+    caasM[ctm] += residual;
   }
 
   var labels = [];
@@ -580,18 +670,21 @@ function calc() {
     vb.textContent='The numbers land close either way. CaaS delivers peace of mind — no surprise repairs, no worrying about a system aging out. Buying gives full ownership and potentially lower cost if repairs stay under the annual budget estimate.';
   }
 
-  var loanPmts = Math.min(lt,months)*lp;
-  var intPaid  = Math.max(0, loanPmts-principal);
-  var cContractPmts = Math.min(ctm,months)*cmo;
-  var cPostPmts     = Math.max(0,months-ctm)*cpt;
+  var loanPmts  = buyPath === 'finance' ? Math.min(lt,months)*lp : 0;
+  var intPaid   = buyPath === 'finance' ? Math.max(0, loanPmts-principal) : 0;
+  var cContractPmts = Math.min(contractEnd,months)*cmo;
+  var pathLabel = caasPath==='payoff'
+    ? (residual>0 ? 'Pay off '+$d(residual)+' at mo.'+ctm : 'Pay off at mo.'+ctm)
+    : 'Continue to mo.180';
   var rows = [
-    ['Equipment / contract payments', $d(bp), $d(cContractPmts+cPostPmts)],
-    ['Financing interest', $d(intPaid), '—'],
-    ['Residual buyout (mo. 96)', '—', caasPath==='payoff' ? (residual>0 ? $d(residual) : 'n/a') : 'continuing to mo. 180'],
-    ['Maintenance ('+yr+' yr)', $d(mnt*yr), cMaint   ? '✓ included' : $d(mnt*yr)],
-    ['Filters ('+yr+' yr)',     $d(flt*yr), cFilters ? '✓ included' : $d(flt*yr)],
-    ['Repairs ('+yr+' yr)',     $d(rep*yr), cRepairs ? '✓ included' : $d(rep*yr)],
-    ['TOTAL', $d(buyTotal), $d(caasTotal)]
+    ['Equipment / contract payments',  buyPath==='cash' ? $d(bp)+' (cash)' : $d(bp),  $d(cContractPmts)],
+    ['Financing interest',             buyPath==='cash' ? '—' : $d(intPaid),           '—'],
+    ['Residual / end of contract',     '—',           caasPath==='payoff' ? $d(residual) : pathLabel],
+    ['Maintenance ('+yr+' yr)',        $d(mnt*yr),    cMaint   ? '✓ included' : $d(mnt*yr)],
+    ['Filters ('+yr+' yr)',            $d(flt*yr),    cFilters ? '✓ included' : $d(flt*yr)],
+    ['Repairs ('+yr+' yr)',            $d(rep*yr),    cRepairs ? '✓ included' : $d(rep*yr)],
+    ['IAQ / UV bulbs ('+yr+' yr)',     $d(iaq*yr),    'customer pays'],
+    ['TOTAL',                          $d(buyTotal),  $d(caasTotal)]
   ];
 
   document.getElementById('btbody').innerHTML = rows.map(function(r,i){
