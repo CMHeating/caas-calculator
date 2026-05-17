@@ -97,6 +97,8 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
 .pbtn.active,.pbtn:hover{border-color:var(--navy);background:var(--navy);color:#fff}
 .btn-calc{flex:1;min-width:160px;padding:11px 24px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s}
 .btn-calc:hover{background:var(--navy-dk)}
+.btn-reset{padding:11px 16px;border:1.5px solid var(--border);background:var(--white);color:var(--muted);border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-reset:hover{border-color:var(--bad);color:var(--bad)}
 
 /* ── RESULTS ── */
 #results{display:none}
@@ -266,19 +268,25 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
             <div class="iw d"><input type="number" id="annualMaint" value="249" min="0" step="10" oninput="autoCalc()"></div>
           </div>
           <div class="field">
-            <div class="lbl">Filters / yr <span class="tip" data-tip="Annual filter replacement cost. Typical: $80–$200/yr">?</span></div>
-            <div class="iw d"><input type="number" id="annualFilters" value="100" min="0" step="10" oninput="autoCalc()"></div>
+            <div class="lbl">Filters / yr <span class="tip" data-tip="Annual filter replacement cost. ~$50/yr">?</span></div>
+            <div class="iw d"><input type="number" id="annualFilters" value="50" min="0" step="10" oninput="autoCalc()"></div>
           </div>
         </div>
         <div class="two">
           <div class="field">
-            <div class="lbl">Repair budget / yr <span class="tip" data-tip="Average annual repair cost. Grows as system ages. Industry avg: $150–$400/yr">?</span></div>
-            <div class="iw d"><input type="number" id="annualRepairs" value="150" min="0" step="10" oninput="autoCalc()"></div>
+            <div class="lbl">Repair budget / yr <span class="tip" data-tip="Average annual repair cost. Grows as system ages. Industry avg: $250/yr">?</span></div>
+            <div class="iw d"><input type="number" id="annualRepairs" value="250" min="0" step="10" oninput="autoCalc()"></div>
           </div>
           <div class="field">
-            <div class="lbl">IAQ / UV bulbs / yr <span class="tip" data-tip="Annual cost for UV bulb replacement and IAQ consumables.">?</span></div>
-            <div class="iw d"><input type="number" id="annualIAQ" value="0" min="0" step="10" oninput="autoCalc()"></div>
+            <div class="lbl">IAQ / UV bulbs / yr <span class="tip" data-tip="$500 bulb every 3 years = ~$167/yr">?</span></div>
+            <div class="iw d"><input type="number" id="annualIAQ" value="167" min="0" step="10" oninput="autoCalc()"></div>
           </div>
+        </div>
+        <div class="div"></div>
+        <div class="sub">Efficiency benefit</div>
+        <div class="field">
+          <div class="lbl">Utility savings / mo <span class="tip" data-tip="Estimated monthly utility savings from newer, more efficient motors and technology. Applies to both buy and CaaS since both deliver new equipment.">?</span></div>
+          <div class="iw d"><input type="number" id="monthlyEfficiency" value="25" min="0" step="5" oninput="autoCalc()"></div>
         </div>
       </div>
     </div>
@@ -363,6 +371,7 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
         <button class="pbtn" onclick="setPeriod(20,this)">20 yr</button>
       </div>
     </div>
+    <button class="btn-reset" onclick="clearResults()" title="Clear results">&#10005; Clear</button>
     <button class="btn-calc" onclick="calc()">Calculate &amp; Compare &rarr;</button>
   </div>
 
@@ -440,11 +449,10 @@ function setPath(path) {
   caasPath = path;
   document.getElementById('path-opt-payoff').classList.toggle('active', path === 'payoff');
   document.getElementById('path-opt-continue').classList.toggle('active', path === 'continue');
-  // Clear residual when switching to continue
   if (path === 'continue') {
     document.getElementById('caasResidual').value = 0;
   }
-  autoCalc();
+  clearResults();
 }
 
 function setBuyPath(path) {
@@ -454,20 +462,31 @@ function setBuyPath(path) {
   document.getElementById('finance-inputs').style.display = path === 'finance' ? 'block' : 'none';
   var investLink = document.getElementById('invest-link');
   investLink.style.display = path === 'cash' ? 'block' : 'none';
-  // Update invest link URL with current system price
   if (path === 'cash') {
     var price = document.getElementById('buyPrice').value || 0;
     document.getElementById('invest-href').href = 'investment-calculator.html?lumpSum=' + price;
   }
-  autoCalc();
+  if (path === 'finance') {
+    // Restore default APR when switching back to finance
+    document.getElementById('apr').value = 9.99;
+  }
+  clearResults();
+}
+
+function clearResults() {
+  var r = document.getElementById('results');
+  r.classList.remove('show');
+  // Brief flash so HCA sees it cleared
+  r.style.opacity = '0';
+  setTimeout(function(){ r.style.opacity = ''; }, 150);
 }
 
 // Default values per tier (price editable, rest are defaults)
 var TIER_DEFAULTS = {
-  value:  { apr:9.99, loanTerm:84,  annualMaint:199, annualFilters:80,  annualRepairs:120, caasMonthly:79,  caasTermMonths:96 },
-  good:   { apr:9.99, loanTerm:84,  annualMaint:249, annualFilters:100, annualRepairs:150, caasMonthly:99,  caasTermMonths:96 },
-  better: { apr:9.99, loanTerm:120, annualMaint:299, annualFilters:120, annualRepairs:200, caasMonthly:149, caasTermMonths:96 },
-  best:   { apr:9.99, loanTerm:120, annualMaint:349, annualFilters:160, annualRepairs:250, caasMonthly:199, caasTermMonths:96 },
+  value:  { apr:9.99, loanTerm:84,  annualMaint:199, annualFilters:50, annualRepairs:250, caasMonthly:79,  caasTermMonths:96 },
+  good:   { apr:9.99, loanTerm:84,  annualMaint:249, annualFilters:50, annualRepairs:250, caasMonthly:99,  caasTermMonths:96 },
+  better: { apr:9.99, loanTerm:120, annualMaint:299, annualFilters:50, annualRepairs:250, caasMonthly:149, caasTermMonths:96 },
+  best:   { apr:9.99, loanTerm:120, annualMaint:349, annualFilters:50, annualRepairs:250, caasMonthly:199, caasTermMonths:96 },
 };
 
 var TIER_LABELS = { value:'Value', good:'Good', better:'Better', best:'Best', custom:'Custom' };
@@ -530,6 +549,7 @@ function calc() {
   var flt = gv('annualFilters');
   var rep = gv('annualRepairs');
   var iaq = gv('annualIAQ');
+  var eff = gv('monthlyEfficiency'); // monthly utility savings — both sides benefit
   var cmo = gv('caasMonthly');
   var ctm = gi('caasTermMonths') || 96;
   var residual = gv('caasResidual');
@@ -554,11 +574,10 @@ function calc() {
   var mMnt = mnt/12, mFlt = flt/12, mRep = rep/12, mIAQ = iaq/12;
 
   // ── BUY ──
-  // Cash: full price at month 0, then just ownership costs
-  // Finance: loan payment each month until lt, then just ownership costs
   var buyC = [buyPath === 'cash' ? bp : 0], buyM = [buyPath === 'cash' ? bp : 0];
   for (var m = 1; m <= months; m++) {
-    var bm = (buyPath === 'finance' && m <= lt ? lp : 0) + mMnt + mFlt + mRep + mIAQ;
+    var bm = (buyPath === 'finance' && m <= lt ? lp : 0) + mMnt + mFlt + mRep + mIAQ - eff;
+    bm = Math.max(0, bm); // can't go below zero
     buyM.push(bm);
     buyC.push(buyC[m-1] + bm);
   }
@@ -575,16 +594,16 @@ function calc() {
     var cm = 0;
 
     if (m <= contractEnd) {
-      // Inside contract: pay monthly CaaS + any uncovered items
       cm = cmo;
       if (!cMaint)   cm += mMnt;
       if (!cFilters) cm += mFlt;
       if (!cRepairs) cm += mRep;
-      // IAQ: always on customer if not in contract (assume not included)
       cm += mIAQ;
+      cm -= eff;
+      cm = Math.max(0, cm);
     } else {
-      // After contract ends — customer owns system, pays own costs
-      cm = mMnt + mFlt + mRep + mIAQ;
+      cm = mMnt + mFlt + mRep + mIAQ - eff;
+      cm = Math.max(0, cm);
     }
 
     caasM.push(cm);
@@ -684,6 +703,7 @@ function calc() {
     ['Filters ('+yr+' yr)',            $d(flt*yr),    cFilters ? '✓ included' : $d(flt*yr)],
     ['Repairs ('+yr+' yr)',            $d(rep*yr),    cRepairs ? '✓ included' : $d(rep*yr)],
     ['IAQ / UV bulbs ('+yr+' yr)',     $d(iaq*yr),    'customer pays'],
+    ['Utility savings ('+yr+' yr)',    '-'+$d(eff*months), '-'+$d(eff*months)],
     ['TOTAL',                          $d(buyTotal),  $d(caasTotal)]
   ];
 
