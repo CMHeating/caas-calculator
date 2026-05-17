@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CaaS vs. Buy | CM Heating</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --navy:    #1a3560;
+  --navy-dk: #0f2240;
+  --amber:   #c97d10;
+  --bg:      #f2ede4;
+  --white:   #ffffff;
+  --border:  #ddd6cc;
+  --text:    #1c1c28;
+  --muted:   #6b6b7b;
+  --ok:      #166a3e;
+  --bad:     #a82c22;
+  --radius:  10px;
+  --shadow:  0 1px 8px rgba(0,0,0,0.07);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5}
+
+/* ── HEADER ── */
+.hdr{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hdr-left{display:flex;align-items:center;gap:14px}
+.badge{background:var(--amber);color:#fff;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:4px}
+.hdr h1{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#fff;line-height:1.2}
+.hdr p{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
+.btn-print{padding:7px 14px;border:1.5px solid rgba(255,255,255,.35);background:transparent;color:#fff;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;border-radius:6px;cursor:pointer;transition:background .15s;white-space:nowrap}
+.btn-print:hover{background:rgba(255,255,255,.1)}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1100px;margin:0 auto;padding:22px 16px}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+
+/* ── PRESETS ── */
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.preset{border:1.5px solid var(--border);background:var(--white);border-radius:8px;padding:9px 15px;cursor:pointer;text-align:left;font-family:'Outfit',sans-serif;transition:all .15s}
+.preset:hover{border-color:var(--navy)}
+.preset.active{border-color:var(--navy);background:var(--navy)}
+.preset .pname{font-size:14px;font-weight:600;color:var(--text)}
+.preset .pdesc{font-size:12px;color:var(--muted);margin-top:1px}
+.preset.active .pname{color:#fff}
+.preset.active .pdesc{color:rgba(255,255,255,.6)}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px}
+.card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.card-head{padding:13px 18px}
+.card.buy .card-head{background:var(--navy)}
+.card.caas .card-head{background:var(--amber)}
+.card-head h2{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:#fff}
+.card-head p{font-size:12px;color:rgba(255,255,255,.6);margin-top:2px}
+.card-body{padding:17px}
+.field{margin-bottom:12px}
+.field:last-child{margin-bottom:0}
+.lbl{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:5px}
+.tip{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#e8e3dc;border-radius:50%;font-size:9px;color:var(--muted);cursor:help;position:relative;flex-shrink:0}
+.tip:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:var(--navy-dk);color:#fff;font-size:11px;font-weight:500;line-height:1.4;padding:5px 9px;border-radius:5px;white-space:normal;max-width:200px;z-index:99;pointer-events:none}
+.iw{position:relative}
+.iw.d input{padding-left:22px}
+.iw.d::before{content:'$';position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;font-weight:600;pointer-events:none}
+.iw.p input{padding-right:26px}
+.iw.p::after{content:'%';position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;font-weight:600;pointer-events:none}
+input[type=number],select{width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:var(--text);background:#faf8f5;transition:border-color .15s;-moz-appearance:textfield;appearance:none}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);background:#fff}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.div{height:1px;background:#ece8e1;margin:13px 0}
+.sub{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:9px}
+.checks{display:flex;flex-direction:column;gap:9px}
+.chk{display:flex;align-items:flex-start;gap:8px;cursor:pointer}
+.chk input[type=checkbox]{width:16px;height:16px;margin-top:2px;accent-color:var(--amber);flex-shrink:0;cursor:pointer}
+.chk .ct{font-size:13px;font-weight:500;color:var(--text);line-height:1.35}
+.chk .cs{font-size:11px;color:var(--muted);display:block;margin-top:1px}
+
+/* ── CONTROLS ── */
+.ctrl-row{display:flex;align-items:center;gap:12px;margin-bottom:26px;flex-wrap:wrap}
+.period-wrap{display:flex;align-items:center;gap:9px;background:var(--white);border-radius:8px;padding:8px 13px;box-shadow:var(--shadow)}
+.period-wrap span{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}
+.pbtns{display:flex;gap:3px}
+.pbtn{padding:4px 10px;border:1.5px solid var(--border);border-radius:5px;background:transparent;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--muted)}
+.pbtn.active,.pbtn:hover{border-color:var(--navy);background:var(--navy);color:#fff}
+.btn-calc{flex:1;min-width:160px;padding:11px 24px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:background .15s;letter-spacing:.01em}
+.btn-calc:hover{background:var(--navy-dk)}
+
+/* ── RESULTS ── */
+#results{display:none}
+#results.show{display:block;animation:up .3s ease}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.met{background:var(--white);border-radius:8px;padding:13px 15px;box-shadow:var(--shadow);text-align:center}
+.met-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:5px}
+.met-val{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--text);line-height:1.1}
+.met-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.met.navy .met-val{color:var(--navy)}
+.met.ok   .met-val{color:var(--ok)}
+.met.bad  .met-val{color:var(--bad)}
+.met.amb  .met-val{color:var(--amber)}
+
+.chart-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:17px;margin-bottom:14px}
+.chart-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;flex-wrap:wrap;gap:10px}
+.chart-top h3{font-family:'Playfair Display',serif;font-size:16px;font-weight:700}
+.ctabs{display:flex;gap:3px}
+.ctab{padding:4px 10px;border:1.5px solid var(--border);border-radius:5px;background:transparent;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--muted)}
+.ctab.active,.ctab:hover{border-color:var(--navy);background:var(--navy);color:#fff}
+.legend{display:flex;gap:14px;margin-bottom:10px}
+.legend span{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--muted)}
+.ldot{width:10px;height:10px;border-radius:2px}
+.chart-wrap{position:relative;height:260px}
+
+.verdict{border-radius:10px;padding:18px 22px;margin-bottom:14px;display:flex;gap:15px;align-items:flex-start}
+.verdict.bw{background:var(--navy);color:#fff}
+.verdict.cw{background:var(--amber);color:#fff}
+.verdict.tie{background:#3a3a4a;color:#fff}
+.vicon{font-size:26px;flex-shrink:0;margin-top:2px}
+.vhed{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:6px}
+.vbody{font-size:13px;opacity:.9;line-height:1.65}
+
+.bdown-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:17px;margin-bottom:20px}
+.bdown-card h3{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;margin-bottom:13px}
+.btable{width:100%;border-collapse:collapse;font-size:13px}
+.btable th{text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding:0 10px 7px 10px;border-bottom:1.5px solid var(--border)}
+.btable th:not(:first-child){text-align:right}
+.btable td{padding:6px 10px;border-bottom:1px solid #f0ece5;color:var(--text)}
+.btable td:not(:first-child){text-align:right}
+.btable tr.total td{font-weight:700;border-bottom:none;padding-top:9px;border-top:1.5px solid var(--border)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:720px){
+  .form-grid,.two{grid-template-columns:1fr}
+  .metrics{grid-template-columns:1fr 1fr}
+  .hdr{flex-direction:column;align-items:flex-start}
+}
+@media print{
+  .btn-print,.presets,.ctrl-row{display:none!important}
+  #results{display:block!important}
+  .hdr,.card.buy .card-head,.card.caas .card-head,.verdict{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-left">
+    <span class="badge">CM Heating</span>
+    <div>
+      <h1>CaaS vs. Buy Analyzer</h1>
+      <p>Comfort as a Service &nbsp;·&nbsp; Financial Comparison Tool &nbsp;·&nbsp; HCA Edition</p>
+    </div>
+  </div>
+  <button class="btn-print" onclick="window.print()">&#128438; Print Report</button>
+</header>
+
+<div class="wrap">
+
+  <div class="eyebrow">Quick start — select a system tier</div>
+  <div class="presets">
+    <button class="preset" onclick="loadPreset('essential',this)">
+      <div class="pname">Essential</div>
+      <div class="pdesc">~$8,500 &nbsp;·&nbsp; Basic heat pump or furnace/AC</div>
+    </button>
+    <button class="preset active" onclick="loadPreset('comfort',this)">
+      <div class="pname">Comfort</div>
+      <div class="pdesc">~$12,500 &nbsp;·&nbsp; 2-stage or mid-tier system</div>
+    </button>
+    <button class="preset" onclick="loadPreset('premium',this)">
+      <div class="pname">Premium</div>
+      <div class="pdesc">~$17,000 &nbsp;·&nbsp; Variable speed, full system</div>
+    </button>
+    <button class="preset" onclick="loadPreset('custom',this)">
+      <div class="pname">Custom</div>
+      <div class="pdesc">Enter your own numbers below</div>
+    </button>
+  </div>
+
+  <div class="form-grid">
+
+    <!-- BUY -->
+    <div class="card buy">
+      <div class="card-head">
+        <h2>If They Buy</h2>
+        <p>Purchase + financing + all ownership costs</p>
+      </div>
+      <div class="card-body">
+
+        <div class="field">
+          <div class="lbl">System price <span class="tip" data-tip="Total installed cost — equipment, labor, and permits">?</span></div>
+          <div class="iw d"><input type="number" id="buyPrice" value="12500" min="0" step="100" oninput="autoCalc()"></div>
+        </div>
+
+        <div class="two">
+          <div class="field">
+            <div class="lbl">Down payment <span class="tip" data-tip="Amount paid upfront. Many customers put $0 down.">?</span></div>
+            <div class="iw d"><input type="number" id="downPayment" value="0" min="0" step="100" oninput="autoCalc()"></div>
+          </div>
+          <div class="field">
+            <div class="lbl">Interest rate <span class="tip" data-tip="Annual financing rate. Typical: 9.99%–14.99%">?</span></div>
+            <div class="iw p"><input type="number" id="apr" value="9.99" min="0" max="30" step="0.01" oninput="autoCalc()"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="lbl">Loan term <span class="tip" data-tip="How long they finance the system">?</span></div>
+          <select id="loanTerm" onchange="autoCalc()">
+            <option value="60">5 years (60 months)</option>
+            <option value="84">7 years (84 months)</option>
+            <option value="120" selected>10 years (120 months)</option>
+            <option value="180">15 years (180 months)</option>
+          </select>
+        </div>
+
+        <div class="div"></div>
+        <div class="sub">Annual ownership costs</div>
+
+        <div class="two">
+          <div class="field">
+            <div class="lbl">Maintenance plan <span class="tip" data-tip="Annual service contract / tune-up. Typical: $200–$350/yr">?</span></div>
+            <div class="iw d"><input type="number" id="annualMaint" value="299" min="0" step="10" oninput="autoCalc()"></div>
+          </div>
+          <div class="field">
+            <div class="lbl">Filters / yr <span class="tip" data-tip="Annual filter replacement cost. Typical: $80–$200/yr">?</span></div>
+            <div class="iw d"><input type="number" id="annualFilters" value="120" min="0" step="10" oninput="autoCalc()"></div>
+          </div>
+        </div>
+
+        <div class="two">
+          <div class="field">
+            <div class="lbl">Repair budget / yr <span class="tip" data-tip="Average annual repair cost. Industry avg: $150–$400/yr — grows as system ages.">?</span></div>
+            <div class="iw d"><input type="number" id="annualRepairs" value="200" min="0" step="10" oninput="autoCalc()"></div>
+          </div>
+          <div class="field">
+            <div class="lbl">Add-ons (one-time) <span class="tip" data-tip="One-time add-ons: UV light, surge protector, etc.">?</span></div>
+            <div class="iw d"><input type="number" id="uvCost" value="0" min="0" step="50" oninput="autoCalc()"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CAAS -->
+    <div class="card caas">
+      <div class="card-head">
+        <h2>Comfort as a Service</h2>
+        <p>All-inclusive monthly subscription</p>
+      </div>
+      <div class="card-body">
+
+        <div class="field">
+          <div class="lbl">Monthly payment <span class="tip" data-tip="Customer's monthly CaaS payment during the contract term">?</span></div>
+          <div class="iw d"><input type="number" id="caasMonthly" value="149" min="0" step="5" oninput="autoCalc()"></div>
+        </div>
+
+        <div class="two">
+          <div class="field">
+            <div class="lbl">Contract term <span class="tip" data-tip="How many months they pay the full monthly rate">?</span></div>
+            <select id="caasTermMonths" onchange="autoCalc()">
+              <option value="60">5 yr (60 mo)</option>
+              <option value="84">7 yr (84 mo)</option>
+              <option value="96" selected>8 yr (96 mo)</option>
+              <option value="120">10 yr (120 mo)</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="lbl">Post-term / mo <span class="tip" data-tip="Monthly fee after contract ends — covers ongoing service and eventual replacement.">?</span></div>
+            <div class="iw d"><input type="number" id="caasPost" value="49" min="0" step="5" oninput="autoCalc()"></div>
+          </div>
+        </div>
+
+        <div class="div"></div>
+        <div class="sub">What's included in CaaS?</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:11px">Uncheck anything <em>not</em> covered. Those costs will be added to the CaaS monthly using the buy-side values.</p>
+
+        <div class="checks">
+          <label class="chk">
+            <input type="checkbox" id="cMaint" checked onchange="autoCalc()">
+            <span class="ct">Maintenance &amp; tune-ups included<span class="cs">Annual service visits, no extra charge</span></span>
+          </label>
+          <label class="chk">
+            <input type="checkbox" id="cFilters" checked onchange="autoCalc()">
+            <span class="ct">Filter replacements included<span class="cs">Filters supplied and swapped out</span></span>
+          </label>
+          <label class="chk">
+            <input type="checkbox" id="cRepairs" checked onchange="autoCalc()">
+            <span class="ct">Repairs &amp; service calls included<span class="cs">No surprise repair bills — ever</span></span>
+          </label>
+          <label class="chk">
+            <input type="checkbox" id="cReplace" checked onchange="autoCalc()">
+            <span class="ct">System replacement at end of life<span class="cs">New system when this one wears out</span></span>
+          </label>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /form-grid -->
+
+  <div class="ctrl-row">
+    <div class="period-wrap">
+      <span>Analysis period:</span>
+      <div class="pbtns">
+        <button class="pbtn" onclick="setPeriod(10,this)">10 yr</button>
+        <button class="pbtn active" onclick="setPeriod(15,this)">15 yr</button>
+        <button class="pbtn" onclick="setPeriod(20,this)">20 yr</button>
+      </div>
+    </div>
+    <button class="btn-calc" onclick="calc()">Calculate &amp; Compare &rarr;</button>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results">
+
+    <div class="metrics">
+      <div class="met navy">
+        <div class="met-lbl">Break-even</div>
+        <div class="met-val" id="m-be">—</div>
+        <div class="met-sub" id="m-be-sub">when buy costs less</div>
+      </div>
+      <div class="met" id="m-buy-card">
+        <div class="met-lbl" id="m-buy-lbl">15-yr total: buy</div>
+        <div class="met-val" id="m-buy-val">—</div>
+        <div class="met-sub" id="m-buy-avg">avg/mo</div>
+      </div>
+      <div class="met" id="m-caas-card">
+        <div class="met-lbl" id="m-caas-lbl">15-yr total: caas</div>
+        <div class="met-val" id="m-caas-val">—</div>
+        <div class="met-sub" id="m-caas-avg">avg/mo</div>
+      </div>
+      <div class="met" id="m-sav-card">
+        <div class="met-lbl" id="m-sav-lbl">savings</div>
+        <div class="met-val" id="m-sav-val">—</div>
+        <div class="met-sub" id="m-sav-sub">over period</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-top">
+        <h3>Cost Comparison Over Time</h3>
+        <div class="ctabs">
+          <button class="ctab active" onclick="switchTab('cum',this)">Cumulative total</button>
+          <button class="ctab" onclick="switchTab('mo',this)">Monthly cost</button>
+        </div>
+      </div>
+      <div class="legend">
+        <span><span class="ldot" style="background:#1a3560"></span>Buy (all-in)</span>
+        <span><span class="ldot" style="background:#c97d10;border-radius:0"></span><span style="display:inline-block;width:10px;height:2px;background:#c97d10;border-radius:0;margin-right:5px"></span>CaaS (all-in)</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart" role="img" aria-label="Line chart comparing cumulative cost of buying vs CaaS over the selected period. Values available in the breakdown table below.">Cost comparison data is shown in the breakdown table below.</canvas>
+      </div>
+    </div>
+
+    <div class="verdict" id="v-card">
+      <div class="vicon" id="v-icon">📊</div>
+      <div>
+        <div class="vhed" id="v-hed">Calculating...</div>
+        <div class="vbody" id="v-body"></div>
+      </div>
+    </div>
+
+    <div class="bdown-card">
+      <h3>Cost Breakdown Summary</h3>
+      <table class="btable">
+        <thead>
+          <tr>
+            <th>Cost component</th>
+            <th>Buy</th>
+            <th>CaaS</th>
+          </tr>
+        </thead>
+        <tbody id="btbody"></tbody>
+      </table>
+    </div>
+
+  </div><!-- /results -->
+
+</div><!-- /wrap -->
+
+<script>
+var period = 15;
+var tab = 'cum';
+var chartInst = null;
+var S = { buyC:[], caasC:[], buyM:[], caasM:[], labels:[] };
+
+var PRESETS = {
+  essential: {buyPrice:8500,  downPayment:0, apr:9.99, loanTerm:84,  annualMaint:249, annualFilters:100, annualRepairs:150, uvCost:0,   caasMonthly:99,  caasTermMonths:96, caasPost:39},
+  comfort:   {buyPrice:12500, downPayment:0, apr:9.99, loanTerm:120, annualMaint:299, annualFilters:120, annualRepairs:200, uvCost:0,   caasMonthly:149, caasTermMonths:96, caasPost:49},
+  premium:   {buyPrice:17000, downPayment:0, apr:9.99, loanTerm:120, annualMaint:349, annualFilters:160, annualRepairs:250, uvCost:499, caasMonthly:199, caasTermMonths:96, caasPost:59}
+};
+
+function loadPreset(name, btn) {
+  document.querySelectorAll('.preset').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  if (name === 'custom') { autoCalc(); return; }
+  var p = PRESETS[name];
+  for (var k in p) { var el = document.getElementById(k); if (el) el.value = p[k]; }
+  autoCalc();
+}
+
+function setPeriod(yr, btn) {
+  period = yr;
+  document.querySelectorAll('.pbtn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  autoCalc();
+}
+
+function switchTab(t, btn) {
+  tab = t;
+  document.querySelectorAll('.ctab').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  renderChart(S.labels, t==='cum' ? S.buyC : S.buyM, t==='cum' ? S.caasC : S.caasM);
+}
+
+function autoCalc() {
+  if (document.getElementById('results').classList.contains('show')) calc();
+}
+
+function $d(n) { return '$' + Math.round(Math.abs(n)).toLocaleString(); }
+function $mo(n) { return '$' + Math.round(Math.abs(n)).toLocaleString() + '/mo'; }
+
+function gv(id) { return parseFloat(document.getElementById(id).value) || 0; }
+function gi(id) { return parseInt(document.getElementById(id).value) || 0; }
+function gc(id) { return document.getElementById(id).checked; }
+
+function calc() {
+  var bp  = gv('buyPrice');
+  var dp  = gv('downPayment');
+  var apr = gv('apr') / 100 / 12;
+  var lt  = gi('loanTerm')  || 120;
+  var mnt = gv('annualMaint');
+  var flt = gv('annualFilters');
+  var rep = gv('annualRepairs');
+  var uv  = gv('uvCost');
+  var cmo = gv('caasMonthly');
+  var ctm = gi('caasTermMonths') || 96;
+  var cpt = gv('caasPost');
+  var cMaint   = gc('cMaint');
+  var cFilters = gc('cFilters');
+  var cRepairs = gc('cRepairs');
+
+  var months = period * 12;
+  var principal = bp - dp;
+  var lp = 0;
+  if (apr > 0 && principal > 0) {
+    lp = principal * apr * Math.pow(1+apr,lt) / (Math.pow(1+apr,lt)-1);
+  } else if (principal > 0) {
+    lp = principal / lt;
+  }
+
+  var mMnt = mnt/12, mFlt = flt/12, mRep = rep/12;
+
+  var buyC  = [dp+uv],  caasC = [0];
+  var buyM  = [dp+uv],  caasM = [0];
+
+  for (var m = 1; m <= months; m++) {
+    var bm = (m<=lt ? lp : 0) + mMnt + mFlt + mRep;
+    buyM.push(bm);
+    buyC.push(buyC[m-1]+bm);
+
+    var cm = (m<=ctm ? cmo : cpt);
+    if (!cMaint)   cm += mMnt;
+    if (!cFilters) cm += mFlt;
+    if (!cRepairs) cm += mRep;
+    caasM.push(cm);
+    caasC.push(caasC[m-1]+cm);
+  }
+
+  var labels = [];
+  for (var i = 0; i <= months; i++) labels.push(i%12===0 ? 'Yr '+(i/12) : '');
+
+  S = { buyC:buyC, caasC:caasC, buyM:buyM, caasM:caasM, labels:labels };
+  renderChart(labels, tab==='cum' ? buyC : buyM, tab==='cum' ? caasC : caasM);
+
+  var buyTotal  = buyC[months];
+  var caasTotal = caasC[months];
+  var savings   = caasTotal - buyTotal;
+  var buyAvg    = buyTotal  / months;
+  var caasAvg   = caasTotal / months;
+
+  var be = null;
+  for (var m2 = 1; m2 <= months; m2++) {
+    if (buyC[m2] <= caasC[m2]) { be = m2; break; }
+  }
+
+  var yr = period;
+  document.getElementById('m-buy-lbl').textContent  = yr+'-yr total: buy';
+  document.getElementById('m-caas-lbl').textContent = yr+'-yr total: caas';
+  document.getElementById('m-buy-val').textContent   = $d(buyTotal);
+  document.getElementById('m-buy-avg').textContent   = $mo(buyAvg)+' avg';
+  document.getElementById('m-caas-val').textContent  = $d(caasTotal);
+  document.getElementById('m-caas-avg').textContent  = $mo(caasAvg)+' avg';
+
+  if (be) {
+    var beYr = Math.floor(be/12), beMo = be%12;
+    document.getElementById('m-be').textContent = beYr ? 'Yr '+beYr+(beMo?'+'+beMo+'mo':'') : be+'mo';
+    document.getElementById('m-be-sub').textContent = 'buy costs less after this';
+  } else {
+    document.getElementById('m-be').textContent = '> '+yr+' yr';
+    document.getElementById('m-be-sub').textContent = 'CaaS stays cheaper';
+  }
+
+  var sc = document.getElementById('m-sav-card');
+  var sv = document.getElementById('m-sav-val');
+  var sl = document.getElementById('m-sav-lbl');
+  var ss = document.getElementById('m-sav-sub');
+  if (savings > 100) {
+    sc.className='met navy'; sv.textContent=$d(savings); sl.textContent='Buy saves'; ss.textContent='vs CaaS over '+yr+' yr';
+  } else if (savings < -100) {
+    sc.className='met amb';  sv.textContent=$d(-savings); sl.textContent='CaaS saves'; ss.textContent='vs buying over '+yr+' yr';
+  } else {
+    sc.className='met'; sv.textContent='~Even'; sl.textContent='cost difference'; ss.textContent='over '+yr+' yr';
+  }
+
+  var vc = document.getElementById('v-card');
+  var vi = document.getElementById('v-icon');
+  var vh = document.getElementById('v-hed');
+  var vb = document.getElementById('v-body');
+  var beStr = be
+    ? 'break-even happens around year ' + (Math.round(be/12*10)/10)
+    : 'buying never becomes the cheaper option over this period';
+
+  if (savings > 100) {
+    vc.className='verdict bw'; vi.textContent='🏠';
+    vh.textContent = 'Buying saves '+$d(savings)+' over '+yr+' years';
+    vb.textContent = 'Purchasing (or financing) this system comes out ahead — '+beStr+'. '
+      +'The loan payment is higher up front, but once paid off, monthly costs drop significantly. '
+      +'Best fit: customers planning to stay in the home who are comfortable with financing.';
+  } else if (savings < -100) {
+    vc.className='verdict cw'; vi.textContent='✅';
+    vh.textContent = 'CaaS saves '+$d(-savings)+' over '+yr+' years';
+    vb.textContent = 'Comfort as a Service is the smarter financial choice — '+beStr+'. '
+      +'The all-inclusive monthly beats the true cost of ownership once maintenance, repairs, and financing interest are factored in. '
+      +'Best fit: customers who want predictable monthly costs, no surprise bills, and future system replacement covered.';
+  } else {
+    vc.className='verdict tie'; vi.textContent='⚖️';
+    vh.textContent = 'Costs are roughly equal over '+yr+' years';
+    vb.textContent = 'The numbers land close either way. The real deciding factor is peace of mind. '
+      +'CaaS means no surprise repairs, no worrying about a system aging out. '
+      +'Buying gives full ownership and potentially lower cost if repairs stay under the annual budget estimate.';
+  }
+
+  var loanPmts = Math.min(lt, months) * lp;
+  var intPaid  = Math.max(0, loanPmts - principal);
+  var caasContractPmts = Math.min(ctm, months) * cmo;
+  var caasPostPmts = Math.max(0, months - ctm) * cpt;
+  var rows = [
+    ['Equipment / contract payments', $d(bp), $d(caasContractPmts + caasPostPmts)],
+    ['Down payment + add-ons', $d(dp+uv), '—'],
+    ['Financing interest', $d(intPaid), '—'],
+    ['Maintenance ('+yr+' yr)', $d(mnt*yr), cMaint   ? '✓ included' : $d(mnt*yr)],
+    ['Filters ('+yr+' yr)',     $d(flt*yr), cFilters  ? '✓ included' : $d(flt*yr)],
+    ['Repairs ('+yr+' yr)',     $d(rep*yr), cRepairs  ? '✓ included' : $d(rep*yr)],
+    ['TOTAL', $d(buyTotal), $d(caasTotal)]
+  ];
+
+  var tbody = document.getElementById('btbody');
+  tbody.innerHTML = rows.map(function(r, i) {
+    return '<tr'+(i===rows.length-1?' class="total"':'')+'><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';
+  }).join('');
+
+  document.getElementById('results').classList.add('show');
+}
+
+function renderChart(labels, buyData, caasData) {
+  var ctx = document.getElementById('chart').getContext('2d');
+  if (chartInst) chartInst.destroy();
+  chartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Buy (all-in)',
+          data: buyData,
+          borderColor: '#1a3560',
+          backgroundColor: 'rgba(26,53,96,0.06)',
+          borderWidth: 2.5,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          fill: tab==='cum',
+          tension: 0.2
+        },
+        {
+          label: 'CaaS (all-in)',
+          data: caasData,
+          borderColor: '#c97d10',
+          backgroundColor: 'rgba(201,125,16,0.06)',
+          borderWidth: 2.5,
+          borderDash: [5,3],
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          fill: tab==='cum',
+          tension: 0.2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          callbacks: {
+            label: function(c) { return ' '+c.dataset.label+': $'+Math.round(c.parsed.y).toLocaleString(); }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color:'rgba(0,0,0,0.04)' },
+          ticks: { font:{family:'Outfit',size:11}, color:'#6b6b7b', maxRotation:0 }
+        },
+        y: {
+          grid: { color:'rgba(0,0,0,0.04)' },
+          ticks: {
+            font: { family:'Outfit', size:11 },
+            color: '#6b6b7b',
+            callback: function(v) { return v>=1000 ? '$'+Math.round(v/1000)+'k' : '$'+v; }
+          }
+        }
+      }
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadPreset('comfort', document.querySelectorAll('.preset')[1]);
+});
+</script>
+</body>
+</html>
