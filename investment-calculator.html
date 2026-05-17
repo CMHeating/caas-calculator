@@ -172,7 +172,7 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
     <div class="intro-icon">💡</div>
     <div>
       <h2>What if you invested instead of buying?</h2>
-      <p>Enter what the customer would spend on a system purchase — down payment and monthly ownership costs — and see what that money grows to if invested instead. Compare it to what they'd actually spend buying, and show how inflation erodes the real value of that purchase over time.</p>
+      <p>Enter the lump sum the customer would invest instead of buying, set the return rate and inflation, and see what that money grows to over time — compared to what they'd spend on a system purchase including tax.</p>
     </div>
   </div>
 
@@ -184,16 +184,15 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
     <div class="input-card">
       <h3>💰 Money to Invest</h3>
       <div class="field">
-        <div class="lbl">Lump sum (day 1) <span class="tip" data-tip="What they'd put down to buy — invested instead on day one.">?</span></div>
+        <div class="lbl">Lump sum (day 1) <span class="tip" data-tip="The amount being invested on day one instead of spending it on a system purchase.">?</span></div>
         <div class="iw d"><input type="number" id="lumpSum" value="0" min="0" step="100" oninput="autoCalc()"></div>
       </div>
       <div class="field">
-        <div class="lbl">Monthly savings <span class="tip" data-tip="The difference between what buy costs monthly vs CaaS. Run the CaaS vs Buy calculator first to get this number.">?</span></div>
-        <div class="iw d"><input type="number" id="monthlySavings" value="200" min="0" step="10" oninput="autoCalc()"></div>
-      </div>
-      <div class="field">
-        <div class="lbl">Total buy cost (for comparison) <span class="tip" data-tip="The total amount the customer would spend buying the system over the analysis period — from the CaaS vs Buy calculator.">?</span></div>
+        <div class="lbl">Total buy cost (before tax) <span class="tip" data-tip="Total spent buying — equipment, financing, maintenance, repairs. 10% tax is added automatically.">?</span></div>
         <div class="iw d"><input type="number" id="buyCost" value="28000" min="0" step="100" oninput="autoCalc()"></div>
+        <div id="buy-cost-with-tax" style="font-size:12px;font-weight:600;color:var(--amber);margin-top:5px;padding:5px 8px;background:#fdf5e8;border-radius:5px;display:none">
+          With 10% tax: <span id="buy-cost-tax-total">—</span>
+        </div>
       </div>
     </div>
 
@@ -322,7 +321,7 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
             <th>Year</th>
             <th>Investment (nominal)</th>
             <th>Investment (real $)</th>
-            <th>Contributions</th>
+            <th>Initial invested</th>
             <th>Purchasing power of $1 today</th>
           </tr>
         </thead>
@@ -384,32 +383,29 @@ function autoCalc(){
 
 function calc(){
   var lump     = gv('lumpSum');
-  var monthly  = gv('monthlySavings');
-  var buyCost  = gv('buyCost');
+  var buyCostRaw = gv('buyCost');
+  var buyCost  = buyCostRaw * 1.10;
   var rateAnn  = gv('returnRate') / 100;
   var infAnn   = gv('inflationRate') / 100;
   var n        = gi('compound') || 12;
   var months   = period * 12;
 
-  // Compound interest calculation
-  // Future value of lump sum: FV = P(1 + r/n)^(nt)
-  // Future value of monthly contributions: FV = PMT * [((1+r/n)^(nt) - 1) / (r/n)]
+  // Show tax callout
+  var taxEl = document.getElementById('buy-cost-with-tax');
+  var taxTotalEl = document.getElementById('buy-cost-tax-total');
+  if (buyCostRaw > 0) {
+    taxEl.style.display = 'block';
+    taxTotalEl.textContent = $d(buyCost) + ' (+' + $d(buyCostRaw * 0.10) + ' tax)';
+  } else {
+    taxEl.style.display = 'none';
+  }
+
+  // Compound interest — lump sum only (no monthly contributions)
   var rPerPeriod = rateAnn / n;
   var numPeriods = n * period;
 
-  var fvLump = lump * Math.pow(1 + rPerPeriod, numPeriods);
-  var fvMonthly = 0;
-  if (rPerPeriod > 0) {
-    // Convert monthly contribution to per-compounding-period contribution
-    var periodsPerMonth = n / 12;
-    var contribPerPeriod = monthly / periodsPerMonth;
-    fvMonthly = contribPerPeriod * ((Math.pow(1 + rPerPeriod, numPeriods) - 1) / rPerPeriod) * (1 + rPerPeriod);
-  } else {
-    fvMonthly = monthly * months;
-  }
-
-  var totalValue    = fvLump + fvMonthly;
-  var totalContrib  = lump + (monthly * months);
+  var totalValue    = lump * Math.pow(1 + rPerPeriod, numPeriods);
+  var totalContrib  = lump;
   var totalInterest = totalValue - totalContrib;
   var inflFactor    = Math.pow(1 + infAnn, period);
   var realValue     = totalValue / inflFactor;
@@ -422,22 +418,12 @@ function calc(){
   var labels     = ['Now'];
 
   for (var yr = 1; yr <= period; yr++) {
-    var m = yr * 12;
     var np = n * yr;
-    var fvL = lump * Math.pow(1 + rPerPeriod, np);
-    var fvM = 0;
-    if (rPerPeriod > 0) {
-      var cpp = n / 12;
-      var cpp2 = monthly / cpp;
-      fvM = cpp2 * ((Math.pow(1 + rPerPeriod, np) - 1) / rPerPeriod) * (1 + rPerPeriod);
-    } else {
-      fvM = monthly * m;
-    }
-    var nom = fvL + fvM;
+    var nom = lump * Math.pow(1 + rPerPeriod, np);
     var inf = Math.pow(1 + infAnn, yr);
     nominalArr.push(nom);
     realArr.push(nom / inf);
-    contribArr.push(lump + monthly * m);
+    contribArr.push(lump);
     buyLine.push(buyCost);
     labels.push('Yr '+yr);
   }
@@ -451,7 +437,7 @@ function calc(){
   document.getElementById('m-interest').textContent   = $d(totalInterest);
   document.getElementById('m-interest-sub').textContent = 'pure compound growth';
   document.getElementById('m-contributed').textContent  = $d(totalContrib);
-  document.getElementById('m-contributed-sub').textContent = lump>0 ? '$'+Math.round(lump).toLocaleString()+' lump + monthly' : 'monthly contributions';
+  document.getElementById('m-contributed-sub').textContent = 'initial investment';
   document.getElementById('m-real').textContent       = $d(realValue);
   document.getElementById('m-real-sub').textContent   = 'in today\'s dollars';
 
@@ -460,7 +446,7 @@ function calc(){
   document.getElementById('c-invest-desc').textContent  = 'Portfolio value after '+period+' years at '+gv('returnRate')+'% annual return — including $'+Math.round(totalInterest).toLocaleString()+' in compound growth.';
   document.getElementById('c-invest-sub').textContent   = '+'+$d(totalInterest)+' in interest earned';
   document.getElementById('c-buy').textContent          = $d(buyCost);
-  document.getElementById('c-buy-desc').textContent     = 'Total out-of-pocket over '+period+' years — equipment, financing, maintenance, repairs, and filters. System depreciates to near $0 by end of life.';
+  document.getElementById('c-buy-desc').textContent     = 'Total cost of buying including 10% tax — '+$d(buyCostRaw)+' + '+$d(buyCostRaw*0.10)+' tax. System depreciates to near $0 by end of life.';
   document.getElementById('c-buy-sub').textContent      = 'system depreciates to ~$0';
 
   // Inflation table
@@ -496,14 +482,12 @@ function calc(){
   var diff = totalValue - buyCost;
   document.getElementById('v-hed').textContent = 'Investing puts '+$d(totalValue)+' in their pocket vs '+$d(buyCost)+' spent buying';
   document.getElementById('v-body').textContent =
-    'By choosing CaaS and investing the monthly savings' +
-    (lump > 0 ? ' plus the '+$d(lump)+' down payment' : '') +
-    ' at '+gv('returnRate')+'% annual return, the customer ends up with '+$d(totalValue)+' after '+period+' years — ' +
+    'By investing '+$d(lump)+' at '+gv('returnRate')+'% annual return instead of putting it into a depreciating system, ' +
+    'the customer ends up with '+$d(totalValue)+' after '+period+' years — ' +
     '$'+Math.round(totalInterest).toLocaleString()+' of that is pure compound interest. ' +
-    'Compare that to spending '+$d(buyCost)+' on a system that depreciates to zero. ' +
+    'Compare that to spending '+$d(buyCost)+' on a system (including 10% tax) that depreciates to zero. ' +
     'In real purchasing power terms (adjusted for '+gv('inflationRate')+'% inflation), ' +
-    'that portfolio is worth '+$d(realValue)+' in today\'s dollars — still '+(diff>0?'ahead by '+$d(diff):'behind by '+$d(-diff))+'.';
-
+    'that portfolio is worth '+$d(realValue)+' in today\'s dollars.';
   renderChart();
   document.getElementById('results').classList.add('show');
 }
