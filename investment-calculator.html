@@ -210,9 +210,9 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
       <div class="field" style="margin-top:8px">
         <div class="lbl">Compounding <span class="tip" data-tip="How often interest is calculated and added to the balance.">?</span></div>
         <select id="compound" onchange="autoCalc()">
-          <option value="12" selected>Monthly</option>
+          <option value="12">Monthly</option>
           <option value="4">Quarterly</option>
-          <option value="1">Annually</option>
+          <option value="1" selected>Annually</option>
         </select>
       </div>
     </div>
@@ -355,6 +355,12 @@ function setRate(inputId, val, btn, groupId){
   document.getElementById(inputId).value = val;
   document.querySelectorAll('#'+groupId+' .rpbtn').forEach(function(b){ b.classList.remove('active'); });
   btn.classList.add('active');
+  // Auto-set compounding to match real-world behavior
+  if (val === 4) {
+    document.getElementById('compound').value = '12'; // HYSA = monthly
+  } else {
+    document.getElementById('compound').value = '1';  // S&P = annually
+  }
   autoCalc();
 }
 
