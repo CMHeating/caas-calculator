@@ -387,9 +387,9 @@ function autoCalc(){
 }
 
 function calc(){
-  var lump     = gv('lumpSum');
-  var buyCostRaw = gv('buyCost');
-  var buyCost  = buyCostRaw * 1.10;
+  var buyCostRaw = gv('lumpSum'); // pre-tax entry
+  var buyCost    = buyCostRaw * 1.10; // tax-inclusive — used for BOTH investment and comparison
+  var lump       = buyCost; // invest the full tax-inclusive amount
   var rateAnn  = gv('returnRate') / 100;
   var infAnn   = gv('inflationRate') / 100;
   var n        = gi('compound') || 12;
