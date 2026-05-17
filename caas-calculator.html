@@ -72,6 +72,10 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
 .chk .ct{font-size:13px;font-weight:500;color:var(--text);line-height:1.35}
 .chk .cs{font-size:11px;color:var(--muted);display:block;margin-top:1px}
 
+.path-btn{flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;background:transparent;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--muted);text-align:center}
+.path-btn:hover{border-color:var(--navy)}
+.path-btn.active{border-color:var(--navy);background:var(--navy);color:#fff}
+
 /* ── CONTROLS ── */
 .ctrl-row{display:flex;align-items:center;gap:12px;margin-bottom:26px;flex-wrap:wrap}
 .period-wrap{display:flex;align-items:center;gap:9px;background:var(--white);border-radius:8px;padding:8px 13px;box-shadow:var(--shadow)}
@@ -263,6 +267,22 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
           </div>
         </div>
         <div class="div"></div>
+        <div class="sub">At end of contract (month 96)</div>
+
+        <div class="field">
+          <div class="lbl">Residual amount <span class="tip" data-tip="Lump sum from the contract to pay off and own the equipment at month 96.">?</span></div>
+          <div class="iw d"><input type="number" id="caasResidual" value="0" min="0" step="100" oninput="autoCalc()"></div>
+        </div>
+
+        <div class="field">
+          <div class="lbl">Customer path <span class="tip" data-tip="Pay off the residual at month 96 and own the equipment, or continue payments through month 180.">?</span></div>
+          <div style="display:flex;gap:6px">
+            <button class="path-btn active" id="path-payoff" onclick="setPath('payoff')">Pay off at mo. 96</button>
+            <button class="path-btn" id="path-continue" onclick="setPath('continue')">Continue to mo. 180</button>
+          </div>
+        </div>
+
+        <div class="div"></div>
         <div class="sub">What's included in CaaS?</div>
         <p style="font-size:12px;color:var(--muted);margin-bottom:11px">Uncheck anything <em>not</em> covered — those costs will be added to the CaaS monthly.</p>
         <div class="checks">
@@ -366,7 +386,15 @@ var period = 15;
 var tab = 'cum';
 var chartInst = null;
 var activePreset = 'good';
+var caasPath = 'payoff'; // 'payoff' or 'continue'
 var S = { buyC:[], caasC:[], buyM:[], caasM:[], labels:[] };
+
+function setPath(path) {
+  caasPath = path;
+  document.getElementById('path-payoff').classList.toggle('active', path === 'payoff');
+  document.getElementById('path-continue').classList.toggle('active', path === 'continue');
+  autoCalc();
+}
 
 // Default values per tier (price editable, rest are defaults)
 var TIER_DEFAULTS = {
@@ -441,6 +469,7 @@ function calc() {
   var cmo = gv('caasMonthly');
   var ctm = gi('caasTermMonths') || 96;
   var cpt = gv('caasPost');
+  var residual = gv('caasResidual');
   var cMaint   = gc('cMaint');
   var cFilters = gc('cFilters');
   var cRepairs = gc('cRepairs');
@@ -460,7 +489,20 @@ function calc() {
   for (var m = 1; m <= months; m++) {
     var bm = (m<=lt ? lp : 0) + mMnt + mFlt + mRep;
     buyM.push(bm); buyC.push(buyC[m-1]+bm);
-    var cm = (m<=ctm ? cmo : cpt);
+    var cm = (m <= ctm ? cmo : cpt);
+    // After contract term: apply residual path
+    if (m === ctm + 1) {
+      if (caasPath === 'payoff') {
+        // Residual paid as lump — add to this month, then drop to post-term fee
+        caasC[caasC.length - 1] += residual;
+        cm = cpt;
+      } else {
+        // Continue paying — same monthly until month 180, then post-term
+        cm = m <= 180 ? cmo : cpt;
+      }
+    } else if (m > ctm) {
+      cm = caasPath === 'continue' && m <= 180 ? cmo : cpt;
+    }
     if (!cMaint)   cm += mMnt;
     if (!cFilters) cm += mFlt;
     if (!cRepairs) cm += mRep;
@@ -544,8 +586,8 @@ function calc() {
   var cPostPmts     = Math.max(0,months-ctm)*cpt;
   var rows = [
     ['Equipment / contract payments', $d(bp), $d(cContractPmts+cPostPmts)],
-    ['Down payment + add-ons', $d(dp+uv), '—'],
     ['Financing interest', $d(intPaid), '—'],
+    ['Residual buyout (mo. 96)', '—', caasPath==='payoff' ? (residual>0 ? $d(residual) : 'n/a') : 'continuing to mo. 180'],
     ['Maintenance ('+yr+' yr)', $d(mnt*yr), cMaint   ? '✓ included' : $d(mnt*yr)],
     ['Filters ('+yr+' yr)',     $d(flt*yr), cFilters ? '✓ included' : $d(flt*yr)],
     ['Repairs ('+yr+' yr)',     $d(rep*yr), cRepairs ? '✓ included' : $d(rep*yr)],
