@@ -447,10 +447,13 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
     <div class="bdown-card" id="invest-angle-card" style="display:none;border-left:4px solid #c97d10">
       <h3>💰 The Investment Angle</h3>
       <p style="font-size:12px;color:#6b6b7b;margin-bottom:10px">What if the money spent on buying was invested instead?</p>
-      <div style="display:flex;gap:6px;margin-bottom:14px" id="inv-rate-presets">
-        <button class="rpbtn" onclick="setInvRate(4,'monthly',this)">4% HYSA</button>
-        <button class="rpbtn" onclick="setInvRate(8,'annual',this)">8% S&amp;P adj.</button>
-        <button class="rpbtn active" onclick="setInvRate(10,'annual',this)">10% S&amp;P nom.</button>
+      <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap" id="inv-rate-presets">
+        <button class="rpbtn" onclick="setInvRate(4,'monthly',this)" title="HYSA interest taxed as ordinary income each year">4% HYSA</button>
+        <button class="rpbtn" onclick="setInvRate(8,'annual',this)" title="10% nominal minus ~2-3% inflation = real purchasing power return">8% S&amp;P real</button>
+        <button class="rpbtn active" onclick="setInvRate(10,'annual',this)" title="Historical S&P 500 average — does not account for inflation">10% S&amp;P nominal</button>
+      </div>
+      <div style="font-size:11px;color:#888;margin-bottom:14px;line-height:1.5">
+        <strong>10% nominal</strong> = historical S&amp;P avg before inflation &nbsp;·&nbsp; <strong>8% real</strong> = inflation-adjusted purchasing power &nbsp;·&nbsp; <strong>Tax note:</strong> long-term capital gains ~15% applies at liquidation; HYSA interest taxed as ordinary income annually
       </div>
       <div id="invest-angle-body"></div>
     </div>
@@ -789,8 +792,10 @@ function calc() {
   var investBody = document.getElementById('invest-angle-body');
   var annRate = invRate;
   var rateLabel = invCompound === 'monthly'
-    ? (annRate*100).toFixed(0) + '% HYSA (monthly compounding)'
-    : (annRate*100).toFixed(0) + '% S&amp;P (annual compounding)';
+    ? (annRate*100).toFixed(0) + '% HYSA (monthly compounding, taxed as ordinary income)'
+    : annRate === 0.08
+      ? '8% S&amp;P real return (inflation-adjusted)'
+      : '10% S&amp;P nominal (historical avg, pre-inflation)';
 
   function fvLump(principal, years) {
     if (invCompound === 'monthly') {
