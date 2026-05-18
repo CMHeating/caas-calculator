@@ -719,14 +719,24 @@ function calc() {
   var pathLabel = caasPath==='payoff'
     ? (residual>0 ? 'Pay off '+$d(residual)+' at mo.'+ctm : 'Pay off at mo.'+ctm)
     : 'Continue to mo.180';
+  var postMonths = caasPath === 'continue' ? 0 : Math.max(0, months - ctm);
+  var postYrs    = Math.round(postMonths / 12 * 10) / 10;
+  var contractYrs = Math.round(Math.min(ctm, months) / 12 * 10) / 10;
+
+  function caasIncludedLabel(annualCost) {
+    if (postMonths <= 0) return '✓ included';
+    var postCost = (annualCost / 12) * postMonths;
+    return '✓ incl. thru yr ' + contractYrs + ', then ' + $d(Math.round(postCost));
+  }
+
   var rows = [
     ['Equipment / contract payments',  buyPath==='cash' ? $d(bp)+' (cash)' : $d(bp),  $d(cContractPmts)],
     ['Financing interest',             buyPath==='cash' ? '—' : $d(intPaid),           '—'],
     ['Residual / end of contract',     '—',           caasPath==='payoff' ? $d(residual) : pathLabel],
-    ['Maintenance ('+yr+' yr)',        $d(mnt*yr),    '✓ included'],
-    ['Filters ('+yr+' yr)',            $d(flt*yr),    '✓ included'],
-    ['Repairs ('+yr+' yr)',            $d(rep*yr),    cRepairs ? '✓ included' : $d(rep*yr)],
-    ['IAQ / UV bulbs ('+yr+' yr)',     $d(iaq*yr),    '✓ included'],
+    ['Maintenance ('+yr+' yr)',        $d(mnt*yr),    caasIncludedLabel(mnt)],
+    ['Filters ('+yr+' yr)',            $d(flt*yr),    caasIncludedLabel(flt)],
+    ['Repairs ('+yr+' yr)',            $d(rep*yr),    cRepairs ? caasIncludedLabel(rep) : $d(rep*yr)],
+    ['IAQ / UV bulbs ('+yr+' yr)',     $d(iaq*yr),    caasIncludedLabel(iaq)],
     ['Utility savings ('+yr+' yr)',    '-'+$d(eff*months), '-'+$d(eff*months)],
     ['TOTAL',                          $d(buyTotal),  $d(caasTotal)]
   ];
