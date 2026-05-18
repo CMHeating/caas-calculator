@@ -759,25 +759,53 @@ function calc() {
 
   if (buyPath === 'finance') {
     var diff = lp - cmo;
+    var rMo = annRate / 12;
+    var lump = bp * 1.10; // tax-inclusive system cost
+    var ltYrs = Math.round(lt / 12 * 10) / 10;
+
+    // Strategy 1: Invest full system cost (tax-inclusive), make loan payments, subtract interest
+    var fvLumpAt15 = lump * Math.pow(1 + annRate, yr);
+    var netAfterInterest = fvLumpAt15 - intPaid;
+    html += '<div style="margin-bottom:12px;padding:12px;background:#f0f4ff;border-radius:8px">' +
+      '<div style="font-size:12px;font-weight:700;color:#1a3560;margin-bottom:6px">🏦 Invest the Full System Cost</div>' +
+      '<div style="font-size:12px;color:#4a4a5a;line-height:1.7">' +
+      'Invest <strong>' + $d(Math.round(lump)) + '</strong> (tax-inclusive) at 10%/yr S&amp;P, make loan payments normally.<br>' +
+      '<strong>' + $d(Math.round(fvLumpAt15)) + '</strong> investment value at year ' + yr + '<br>' +
+      '<span style="color:#c97d10">minus <strong>' + $d(Math.round(intPaid)) + '</strong> total loan interest paid</span><br>' +
+      '<span style="font-size:15px;font-weight:800;color:#1a3560">= Net ' + $d(Math.round(netAfterInterest)) + ' after ' + yr + ' years</span><br>' +
+      '<span style="font-size:11px;color:#888">CaaS total cost: ' + $d(caasTotal) + ' &nbsp;|&nbsp; Loan term: ' + ltYrs + ' yrs</span>' +
+      '</div></div>';
+
+    // Strategy 2: Monthly gap — show whichever direction it goes
     if (diff > 0) {
-      var rMo = annRate / 12;
-      // Step 1: invest monthly difference for loan term only
+      // Loan > CaaS: invest the gap
       var fvAtLoanEnd = diff * ((Math.pow(1 + rMo, lt) - 1) / rMo);
-      // Step 2: let that lump grow for remaining months to year 15
       var remainingMonths = months - lt;
       var fvAt15 = fvAtLoanEnd * Math.pow(1 + rMo, remainingMonths);
-      var ltYrs = Math.round(lt / 12 * 10) / 10;
-      html += '<div style="margin-bottom:14px;padding:12px;background:#f0f4ff;border-radius:8px">' +
-        '<div style="font-size:12px;font-weight:700;color:#1a3560;margin-bottom:6px">🏦 Finance Scenario</div>' +
+      html += '<div style="padding:12px;background:#f5f8ff;border-radius:8px">' +
+        '<div style="font-size:12px;font-weight:700;color:#1a3560;margin-bottom:6px">📈 Invest the Monthly Difference</div>' +
         '<div style="font-size:12px;color:#4a4a5a;line-height:1.7">' +
-        'Loan payment <strong>' + $mo(lp) + '/mo</strong> vs CaaS <strong>' + $mo(cmo) + '/mo</strong> — monthly gap: <strong>' + $mo(diff) + '</strong><br>' +
-        'Invest that gap for the <strong>' + ltYrs + '-yr loan term</strong> at 10%/yr S&amp;P → accumulates <strong>' + $d(Math.round(fvAtLoanEnd)) + '</strong><br>' +
+        'Loan <strong>' + $mo(lp) + '/mo</strong> vs CaaS <strong>' + $mo(cmo) + '/mo</strong> — gap: <strong>' + $mo(diff) + '/mo</strong><br>' +
+        'Invest that gap for the <strong>' + ltYrs + '-yr loan term</strong> → <strong>' + $d(Math.round(fvAtLoanEnd)) + '</strong><br>' +
         'Left invested through year ' + yr + ':<br>' +
-        '<span style="font-size:20px;font-weight:800;color:#1a3560">' + $d(Math.round(fvAt15)) + '</span><br>' +
-        '<span style="font-size:11px;color:#888">Total contributed: ' + $d(Math.round(diff * lt)) + ' &nbsp;|&nbsp; Total growth: ' + $d(Math.round(fvAt15 - diff * lt)) + ' &nbsp;|&nbsp; CaaS total: ' + $d(caasTotal) + '</span>' +
+        '<span style="font-size:15px;font-weight:800;color:#1a3560">' + $d(Math.round(fvAt15)) + '</span><br>' +
+        '<span style="font-size:11px;color:#888">Total contributed: ' + $d(Math.round(diff * lt)) + ' &nbsp;|&nbsp; Growth: ' + $d(Math.round(fvAt15 - diff * lt)) + '</span>' +
         '</div></div>';
-    } else {
-      html += '<div style="padding:12px;background:#f5f5f5;border-radius:8px;font-size:12px;color:#888">CaaS payment is higher than the loan payment — no monthly surplus to invest.</div>';
+    } else if (diff < 0) {
+      // CaaS > Loan: buying saves money monthly — highlight as buy benefit
+      var monthlySavings = Math.abs(diff);
+      var fvSavingsAtLoanEnd = monthlySavings * ((Math.pow(1 + rMo, lt) - 1) / rMo);
+      var remainingMonths2 = months - lt;
+      var fvSavingsAt15 = fvSavingsAtLoanEnd * Math.pow(1 + rMo, remainingMonths2);
+      html += '<div style="padding:12px;background:#edfaf0;border-radius:8px;border-left:3px solid #3aaa35">' +
+        '<div style="font-size:12px;font-weight:700;color:#168a20;margin-bottom:6px">✅ Buying Saves More Monthly — Invest the Difference</div>' +
+        '<div style="font-size:12px;color:#4a4a5a;line-height:1.7">' +
+        'CaaS <strong>' + $mo(cmo) + '/mo</strong> costs more than the loan <strong>' + $mo(lp) + '/mo</strong> — buying saves <strong>' + $mo(monthlySavings) + '/mo</strong>.<br>' +
+        'Invest those savings for the <strong>' + ltYrs + '-yr loan term</strong> → <strong>' + $d(Math.round(fvSavingsAtLoanEnd)) + '</strong><br>' +
+        'Left invested through year ' + yr + ':<br>' +
+        '<span style="font-size:15px;font-weight:800;color:#168a20">' + $d(Math.round(fvSavingsAt15)) + '</span><br>' +
+        '<span style="font-size:11px;color:#888">Total contributed: ' + $d(Math.round(monthlySavings * lt)) + ' &nbsp;|&nbsp; Growth: ' + $d(Math.round(fvSavingsAt15 - monthlySavings * lt)) + ' &nbsp;|&nbsp; Plus system ownership at year ' + ltYrs + '</span>' +
+        '</div></div>';
     }
   }
 
