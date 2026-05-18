@@ -299,8 +299,11 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
       </div>
       <div class="card-body">
         <div class="field">
-          <div class="lbl">Monthly payment <span class="tip" data-tip="Customer's monthly CaaS payment during the contract term">?</span></div>
+          <div class="lbl">Monthly payment <span class="tip" data-tip="Customer's monthly CaaS payment before tax. 10% tax added automatically.">?</span></div>
           <div class="iw d"><input type="number" id="caasMonthly" value="99" min="0" step="5" oninput="autoCalc()"></div>
+          <div id="caas-tax-callout" style="font-size:12px;font-weight:600;color:var(--amber);margin-top:5px;padding:5px 8px;background:#fdf5e8;border-radius:5px;display:none">
+            With 10% tax: <span id="caas-monthly-tax">—</span>/mo
+          </div>
         </div>
         <div class="field">
           <div class="lbl">Contract term <span class="tip" data-tip="How many months they pay the full monthly rate">?</span></div>
@@ -554,8 +557,19 @@ function calc() {
   var rep = gv('annualRepairs');
   var iaq = gv('annualIAQ');
   var eff = gv('monthlyEfficiency'); // monthly utility savings — both sides benefit
-  var cmo = gv('caasMonthly');
+  var cmoRaw = gv('caasMonthly');
+  var cmo = cmoRaw * 1.10; // 10% tax applied
   var ctm = gi('caasTermMonths') || 96;
+
+  // Show CaaS tax callout
+  var caasTaxEl = document.getElementById('caas-tax-callout');
+  var caasTaxVal = document.getElementById('caas-monthly-tax');
+  if (cmoRaw > 0) {
+    caasTaxEl.style.display = 'block';
+    caasTaxVal.textContent = $mo(cmo);
+  } else {
+    caasTaxEl.style.display = 'none';
+  }
   var residual = gv('caasResidual');
   var cMaint   = gc('cMaint');
   var cFilters = gc('cFilters');
