@@ -217,8 +217,11 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
       </div>
       <div class="card-body">
         <div class="field">
-          <div class="lbl">System price <span class="tip" data-tip="Total installed cost — equipment, labor, and permits">?</span></div>
+          <div class="lbl">System price (before tax) <span class="tip" data-tip="Total installed cost — equipment, labor, and permits. 10% sales tax added automatically.">?</span></div>
           <div class="iw d"><input type="number" id="buyPrice" value="8500" min="0" step="100" oninput="autoCalc()"></div>
+          <div id="buy-price-tax-callout" style="font-size:12px;font-weight:600;color:var(--amber);margin-top:5px;padding:5px 8px;background:#fdf5e8;border-radius:5px;display:none">
+            With 10% tax: <span id="buy-price-tax-total">—</span>
+          </div>
         </div>
 
         <div class="div"></div>
@@ -587,6 +590,17 @@ function gc(id) { return document.getElementById(id).checked; }
 
 function calc() {
   var bp  = gv('buyPrice');
+  var bpTax = bp * 1.10; // tax-inclusive buy price
+
+  // Show buy price tax callout
+  var buyTaxEl = document.getElementById('buy-price-tax-callout');
+  var buyTaxTotal = document.getElementById('buy-price-tax-total');
+  if (bp > 0) {
+    buyTaxEl.style.display = 'block';
+    buyTaxTotal.textContent = $d(bpTax) + ' (+' + $d(bp * 0.10) + ' tax)';
+  } else {
+    buyTaxEl.style.display = 'none';
+  }
   var apr = buyPath === 'cash' ? 0 : gv('apr') / 100 / 12;
   var lt  = buyPath === 'cash' ? 0 : (gi('loanTerm') || 120);
   var mnt = gv('annualMaint');
@@ -618,7 +632,7 @@ function calc() {
   }
 
   var months = period * 12;
-  var principal = bp;
+  var principal = bpTax; // loan on tax-inclusive price
   var lp = 0;
   if (buyPath === 'finance' && apr > 0 && principal > 0) {
     lp = principal * apr * Math.pow(1+apr,lt) / (Math.pow(1+apr,lt)-1);
@@ -626,12 +640,12 @@ function calc() {
     lp = principal / lt;
   }
 
-  var infRate = gv('inflationRate') / 100; // annual inflation on ongoing costs
+  var infRate = gv('inflationRate') / 100;
 
   var mMnt = mnt/12, mFlt = flt/12, mRep = rep/12, mIAQ = iaq/12;
 
   // ── BUY ──
-  var buyC = [buyPath === 'cash' ? bp : 0], buyM = [buyPath === 'cash' ? bp : 0];
+  var buyC = [buyPath === 'cash' ? bpTax : 0], buyM = [buyPath === 'cash' ? bpTax : 0];
   for (var m = 1; m <= months; m++) {
     var inf = Math.pow(1 + infRate, Math.floor((m-1)/12)); // inflation factor for this month's year
     var bm = (buyPath === 'finance' && m <= lt ? lp : 0) + (mMnt + mFlt + mRep + mIAQ) * inf;
@@ -639,6 +653,14 @@ function calc() {
     buyM.push(bm);
     buyC.push(buyC[m-1] + bm);
   }
+
+  // Calculate inflation premium for breakdown table
+  var flatOngoing = (mMnt + mFlt + mRep + mIAQ) * months; // no inflation
+  var inflatedOngoing = 0;
+  for (var m = 1; m <= months; m++) {
+    inflatedOngoing += (mMnt + mFlt + mRep + mIAQ) * Math.pow(1 + infRate, Math.floor((m-1)/12));
+  }
+  var inflationPremium = inflatedOngoing - flatOngoing;
 
   // ── CaaS ──
   var caasC = [0], caasM = [0];
@@ -756,14 +778,15 @@ function calc() {
   }
 
   var rows = [
-    ['Equipment / contract payments',  buyPath==='cash' ? $d(bp)+' (cash)' : $d(bp),  $d(cContractPmts)],
-    ['Financing interest',             buyPath==='cash' ? '—' : $d(intPaid),           '—'],
+    ['Equipment (before tax)',          buyPath==='cash' ? $d(bp)+' (cash)' : $d(bp),  $d(cContractPmts)],
+    ['Sales tax (10%)',                  buyPath==='cash' ? $d(Math.round(bp*0.10)) : $d(Math.round(bp*0.10))+' (financed)', '✓ in monthly'],
+    ['Financing interest',              buyPath==='cash' ? '—' : $d(intPaid),           '—'],
     ['Residual / end of contract',     '—',           caasPath==='payoff' ? $d(residual) : pathLabel],
     ['Maintenance ('+yr+' yr)',        $d(mnt*yr),    caasIncludedLabel(mnt)],
     ['Filters ('+yr+' yr)',            $d(flt*yr),    caasIncludedLabel(flt)],
     ['Repairs ('+yr+' yr)',            $d(rep*yr),    cRepairs ? caasIncludedLabel(rep) : $d(rep*yr)],
     ['IAQ / UV bulbs ('+yr+' yr)',     $d(iaq*yr),    caasIncludedLabel(iaq)],
-    ['Cost inflation ('+infRate*100+'%/yr)',  'Applied to maint, repairs, filters, IAQ', 'Fixed monthly — inflation-proof'],
+    ['Cost inflation ('+infRate*100+'%/yr)',  '+' + $d(Math.round(inflationPremium)) + ' on maint, repairs, filters, IAQ', 'Fixed monthly — inflation-proof'],
     ['TOTAL',                          $d(buyTotal),  $d(caasTotal)]
   ];
 
