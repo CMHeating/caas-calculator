@@ -283,10 +283,15 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
           </div>
         </div>
         <div class="div"></div>
-        <div class="sub">Efficiency benefit</div>
+        <div class="sub">Cost inflation</div>
         <div class="field">
-          <div class="lbl">Utility savings / mo <span class="tip" data-tip="Estimated monthly utility savings from newer, more efficient motors and technology. Applies to both buy and CaaS since both deliver new equipment.">?</span></div>
-          <div class="iw d"><input type="number" id="monthlyEfficiency" value="25" min="0" step="5" oninput="autoCalc()"></div>
+          <div class="lbl">Annual cost inflation <span class="tip" data-tip="Maintenance, repairs, filters, and IAQ costs rise with inflation each year. CaaS monthly payment stays fixed — a key advantage over time.">?</span></div>
+          <div class="rate-presets" id="inf-presets">
+            <button class="rpbtn" onclick="setInfPreset(2,this)">2% Fed</button>
+            <button class="rpbtn active" onclick="setInfPreset(3,this)">3% Hist.</button>
+            <button class="rpbtn" onclick="setInfPreset(4,this)">4% High</button>
+          </div>
+          <div class="iw p"><input type="number" id="inflationRate" value="3" min="0" max="15" step="0.5" oninput="clearInfPreset();autoCalc()"></div>
         </div>
       </div>
     </div>
@@ -544,6 +549,16 @@ function switchTab(t, btn) {
   renderChart(S.labels, t==='cum' ? S.buyC : S.buyM, t==='cum' ? S.caasC : S.caasM);
 }
 
+function setInfPreset(val, btn) {
+  document.getElementById('inflationRate').value = val;
+  document.querySelectorAll('#inf-presets .rpbtn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  autoCalc();
+}
+function clearInfPreset() {
+  document.querySelectorAll('#inf-presets .rpbtn').forEach(function(b){ b.classList.remove('active'); });
+}
+
 function autoCalc() {
   if (document.getElementById('results').classList.contains('show')) calc();
 }
@@ -562,7 +577,6 @@ function calc() {
   var flt = gv('annualFilters');
   var rep = gv('annualRepairs');
   var iaq = gv('annualIAQ');
-  var eff = gv('monthlyEfficiency'); // monthly utility savings — both sides benefit
   var cmoRaw = gv('caasMonthly');
   var cmo = cmoRaw * 1.10; // 10% tax applied
   var ctm = gi('caasTermMonths') || 96;
@@ -596,40 +610,36 @@ function calc() {
     lp = principal / lt;
   }
 
+  var infRate = gv('inflationRate') / 100; // annual inflation on ongoing costs
+
   var mMnt = mnt/12, mFlt = flt/12, mRep = rep/12, mIAQ = iaq/12;
 
   // ── BUY ──
   var buyC = [buyPath === 'cash' ? bp : 0], buyM = [buyPath === 'cash' ? bp : 0];
   for (var m = 1; m <= months; m++) {
-    var bm = (buyPath === 'finance' && m <= lt ? lp : 0) + mMnt + mFlt + mRep + mIAQ - eff;
-    bm = Math.max(0, bm); // can't go below zero
+    var inf = Math.pow(1 + infRate, Math.floor((m-1)/12)); // inflation factor for this month's year
+    var bm = (buyPath === 'finance' && m <= lt ? lp : 0) + (mMnt + mFlt + mRep + mIAQ) * inf;
+    bm = Math.max(0, bm);
     buyM.push(bm);
     buyC.push(buyC[m-1] + bm);
   }
 
-  // ── CaaS: clean month-by-month, no doubling ──
-  // During contract: cmo + unchecked items
-  // Path A (payoff): residual added ONCE at month ctm, then $0 (customer owns system,
-  //   they now pay for any items that weren't included in CaaS)
-  // Path B (continue): cmo + unchecked items through month 180, then $0
+  // ── CaaS ──
   var caasC = [0], caasM = [0];
   var contractEnd = caasPath === 'continue' ? 180 : ctm;
 
   for (var m = 1; m <= months; m++) {
+    var inf = Math.pow(1 + infRate, Math.floor((m-1)/12));
     var cm = 0;
-
     if (m <= contractEnd) {
-      cm = cmo;
-      // Maintenance, filters, IAQ always included in CaaS payment — never added
-      if (!cRepairs) cm += mRep;
-      cm -= eff;
+      cm = cmo; // fixed monthly — inflation-proof during contract
+      if (!cRepairs) cm += mRep * inf;
       cm = Math.max(0, cm);
     } else {
-      // After contract: customer pays all own costs
-      cm = mMnt + mFlt + mRep + mIAQ - eff;
+      // After contract: customer pays own costs, now subject to inflation
+      cm = (mMnt + mFlt + mRep + mIAQ) * inf;
       cm = Math.max(0, cm);
     }
-
     caasM.push(cm);
     caasC.push(caasC[m-1] + cm);
   }
@@ -737,7 +747,7 @@ function calc() {
     ['Filters ('+yr+' yr)',            $d(flt*yr),    caasIncludedLabel(flt)],
     ['Repairs ('+yr+' yr)',            $d(rep*yr),    cRepairs ? caasIncludedLabel(rep) : $d(rep*yr)],
     ['IAQ / UV bulbs ('+yr+' yr)',     $d(iaq*yr),    caasIncludedLabel(iaq)],
-    ['Utility savings ('+yr+' yr)',    '-'+$d(eff*months), '-'+$d(eff*months)],
+    ['Cost inflation ('+infRate*100+'%/yr)',  'Applied to maint, repairs, filters, IAQ', 'Fixed monthly — inflation-proof'],
     ['TOTAL',                          $d(buyTotal),  $d(caasTotal)]
   ];
 
