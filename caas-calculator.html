@@ -338,15 +338,19 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
 
         <div class="div"></div>
         <div class="sub">What's included in CaaS?</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:11px">Uncheck anything <em>not</em> covered — those costs will be added to the monthly.</p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:11px">Maintenance, filters, and IAQ are always included. Uncheck anything else not covered.</p>
         <div class="checks">
-          <label class="chk">
-            <input type="checkbox" id="cMaint" checked onchange="autoCalc()">
-            <span class="ct">Maintenance &amp; tune-ups included<span class="cs">Annual service visits, no extra charge</span></span>
+          <label class="chk" style="opacity:0.6;pointer-events:none">
+            <input type="checkbox" id="cMaint" checked disabled>
+            <span class="ct">Maintenance &amp; tune-ups included<span class="cs">Always included in CaaS payment</span></span>
           </label>
-          <label class="chk">
-            <input type="checkbox" id="cFilters" checked onchange="autoCalc()">
-            <span class="ct">Filter replacements included<span class="cs">Filters supplied and swapped out</span></span>
+          <label class="chk" style="opacity:0.6;pointer-events:none">
+            <input type="checkbox" id="cFilters" checked disabled>
+            <span class="ct">Filter replacements included<span class="cs">Always included in CaaS payment</span></span>
+          </label>
+          <label class="chk" style="opacity:0.6;pointer-events:none">
+            <input type="checkbox" id="cIAQ" checked disabled>
+            <span class="ct">IAQ / UV bulbs included<span class="cs">Always included in CaaS payment</span></span>
           </label>
           <label class="chk">
             <input type="checkbox" id="cRepairs" checked onchange="autoCalc()">
@@ -556,6 +560,7 @@ function calc() {
   var cMaint   = gc('cMaint');
   var cFilters = gc('cFilters');
   var cRepairs = gc('cRepairs');
+  var cIAQ     = gc('cIAQ');
 
   // Keep invest link updated with current price
   if (buyPath === 'cash' && bp > 0) {
@@ -595,13 +600,12 @@ function calc() {
 
     if (m <= contractEnd) {
       cm = cmo;
-      if (!cMaint)   cm += mMnt;
-      if (!cFilters) cm += mFlt;
+      // Maintenance, filters, IAQ always included in CaaS payment — never added
       if (!cRepairs) cm += mRep;
-      cm += mIAQ;
       cm -= eff;
       cm = Math.max(0, cm);
     } else {
+      // After contract: customer pays all own costs
       cm = mMnt + mFlt + mRep + mIAQ - eff;
       cm = Math.max(0, cm);
     }
@@ -699,10 +703,10 @@ function calc() {
     ['Equipment / contract payments',  buyPath==='cash' ? $d(bp)+' (cash)' : $d(bp),  $d(cContractPmts)],
     ['Financing interest',             buyPath==='cash' ? '—' : $d(intPaid),           '—'],
     ['Residual / end of contract',     '—',           caasPath==='payoff' ? $d(residual) : pathLabel],
-    ['Maintenance ('+yr+' yr)',        $d(mnt*yr),    cMaint   ? '✓ included' : $d(mnt*yr)],
-    ['Filters ('+yr+' yr)',            $d(flt*yr),    cFilters ? '✓ included' : $d(flt*yr)],
+    ['Maintenance ('+yr+' yr)',        $d(mnt*yr),    '✓ included'],
+    ['Filters ('+yr+' yr)',            $d(flt*yr),    '✓ included'],
     ['Repairs ('+yr+' yr)',            $d(rep*yr),    cRepairs ? '✓ included' : $d(rep*yr)],
-    ['IAQ / UV bulbs ('+yr+' yr)',     $d(iaq*yr),    'customer pays'],
+    ['IAQ / UV bulbs ('+yr+' yr)',     $d(iaq*yr),    '✓ included'],
     ['Utility savings ('+yr+' yr)',    '-'+$d(eff*months), '-'+$d(eff*months)],
     ['TOTAL',                          $d(buyTotal),  $d(caasTotal)]
   ];
