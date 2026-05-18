@@ -307,11 +307,8 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
       </div>
       <div class="card-body">
         <div class="field">
-          <div class="lbl">Monthly payment <span class="tip" data-tip="Customer's monthly CaaS payment before tax. 10% tax added automatically.">?</span></div>
+          <div class="lbl">Monthly payment <span class="tip" data-tip="Customer's flat monthly CaaS payment — no tax applied.">?</span></div>
           <div class="iw d"><input type="number" id="caasMonthly" value="99" min="0" step="5" oninput="autoCalc()"></div>
-          <div id="caas-tax-callout" style="font-size:12px;font-weight:600;color:var(--amber);margin-top:5px;padding:5px 8px;background:#fdf5e8;border-radius:5px;display:none">
-            With 10% tax: <span id="caas-monthly-tax">—</span>/mo
-          </div>
         </div>
         <div class="field">
           <div class="lbl">Contract term <span class="tip" data-tip="How many months they pay the full monthly rate">?</span></div>
@@ -608,18 +605,9 @@ function calc() {
   var rep = gv('annualRepairs');
   var iaq = gv('annualIAQ');
   var cmoRaw = gv('caasMonthly');
-  var cmo = cmoRaw * 1.10; // 10% tax applied
+  var cmo = cmoRaw;
   var ctm = gi('caasTermMonths') || 96;
 
-  // Show CaaS tax callout
-  var caasTaxEl = document.getElementById('caas-tax-callout');
-  var caasTaxVal = document.getElementById('caas-monthly-tax');
-  if (cmoRaw > 0) {
-    caasTaxEl.style.display = 'block';
-    caasTaxVal.textContent = $mo(cmo);
-  } else {
-    caasTaxEl.style.display = 'none';
-  }
   var residual = gv('caasResidual');
   var cMaint   = gc('cMaint');
   var cFilters = gc('cFilters');
@@ -857,7 +845,7 @@ function calc() {
       html += '<div style="padding:12px;background:#f5f8ff;border-radius:8px">' +
         '<div style="font-size:12px;font-weight:700;color:#1a3560;margin-bottom:6px">📈 Invest the Monthly Difference</div>' +
         '<div style="font-size:12px;color:#4a4a5a;line-height:1.7">' +
-        'Loan <strong>' + $mo(lp) + '/mo</strong> vs CaaS <strong>' + $mo(cmo) + '/mo</strong> — gap: <strong>' + $mo(diff) + '/mo</strong><br>' +
+        'Loan <strong>' + $mo(lp) + '</strong> vs CaaS <strong>' + $mo(cmoRaw) + '</strong> — gap: <strong>' + $mo(diff) + '</strong><br>' +
         'Invest that gap for the <strong>' + ltYrs + '-yr loan term</strong> at ' + rateLabel + ' → <strong>' + $d(Math.round(fvAtLoanEnd)) + '</strong><br>' +
         'Left invested through year ' + yr + ':<br>' +
         '<span style="font-size:15px;font-weight:800;color:#1a3560">' + $d(Math.round(fvAt15)) + '</span><br>' +
@@ -871,7 +859,7 @@ function calc() {
       html += '<div style="padding:12px;background:#edfaf0;border-radius:8px;border-left:3px solid #3aaa35">' +
         '<div style="font-size:12px;font-weight:700;color:#168a20;margin-bottom:6px">✅ Buying Saves More Monthly — Invest the Difference</div>' +
         '<div style="font-size:12px;color:#4a4a5a;line-height:1.7">' +
-        'CaaS <strong>' + $mo(cmo) + '/mo</strong> costs more than the loan <strong>' + $mo(lp) + '/mo</strong> — buying saves <strong>' + $mo(monthlySavings) + '/mo</strong>.<br>' +
+        'CaaS <strong>' + $mo(cmoRaw) + '</strong> costs more than the loan <strong>' + $mo(lp) + '</strong> — buying saves <strong>' + $mo(monthlySavings) + '</strong>.<br>' +
         'Invest those savings for the <strong>' + ltYrs + '-yr loan term</strong> at ' + rateLabel + ' → <strong>' + $d(Math.round(fvSavingsAtLoanEnd)) + '</strong><br>' +
         'Left invested through year ' + yr + ':<br>' +
         '<span style="font-size:15px;font-weight:800;color:#168a20">' + $d(Math.round(fvSavingsAt15)) + '</span><br>' +
