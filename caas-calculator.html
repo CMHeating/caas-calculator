@@ -422,7 +422,7 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
       <div id="replacement-cost-body"></div>
     </div>
 
-    <div class="chart-card">
+    <div class="chart-card" id="chart-card">
       <div class="chart-top">
         <h3>Cost Comparison Over Time</h3>
         <div class="ctabs">
@@ -708,6 +708,9 @@ function calc() {
 
   var buyTotal  = buyC[months];
   var caasTotal = caasC[months];
+
+  // Hide chart when CaaS is already winning — replacement cost & investment angle tell a better story
+  document.getElementById('chart-card').style.display = caasTotal < buyTotal ? 'none' : 'block';
   var savings   = caasTotal - buyTotal;
   var buyAvg    = buyTotal / months;
   var caasAvg   = caasTotal / months;
