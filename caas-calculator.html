@@ -709,8 +709,8 @@ function calc() {
   var buyTotal  = buyC[months];
   var caasTotal = caasC[months];
 
-  // Hide chart when CaaS is already winning — replacement cost & investment angle tell a better story
-  document.getElementById('chart-card').style.display = caasTotal < buyTotal ? 'none' : 'block';
+  // Hide chart when buy is winning — focus on replacement cost & investment angle instead
+  document.getElementById('chart-card').style.display = caasTotal < buyTotal ? 'block' : 'none';
   var savings   = caasTotal - buyTotal;
   var buyAvg    = buyTotal / months;
   var caasAvg   = caasTotal / months;
