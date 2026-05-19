@@ -397,17 +397,19 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
       <div class="met navy">
         <div class="met-lbl">Break-even</div>
         <div class="met-val" id="m-be">—</div>
-        <div class="met-sub" id="m-be-sub">when buy costs less</div>
+        <div class="met-sub" id="m-be-sub">buy costs less after this</div>
       </div>
       <div class="met">
-        <div class="met-lbl" id="m-buy-lbl">15-yr total: buy</div>
+        <div class="met-lbl" id="m-buy-lbl">Buy: Total Cost of Ownership</div>
         <div class="met-val" id="m-buy-val">—</div>
         <div class="met-sub" id="m-buy-avg">avg/mo</div>
+        <div class="met-detail" id="m-buy-detail" style="font-size:10px;color:#888;margin-top:4px;line-height:1.5"></div>
       </div>
       <div class="met">
-        <div class="met-lbl" id="m-caas-lbl">15-yr total: caas</div>
+        <div class="met-lbl" id="m-caas-lbl">CaaS: Total Cost of Ownership</div>
         <div class="met-val" id="m-caas-val">—</div>
         <div class="met-sub" id="m-caas-avg">avg/mo</div>
+        <div class="met-detail" id="m-caas-detail" style="font-size:10px;color:#888;margin-top:4px;line-height:1.5"></div>
       </div>
       <div class="met" id="m-sav-card">
         <div class="met-lbl" id="m-sav-lbl">savings</div>
@@ -744,12 +746,24 @@ function calc() {
   badgeEl.textContent = '● ' + tierLabel + (activePreset !== 'custom' ? ' · $' + Math.round(bp).toLocaleString() : ' · Custom quote');
 
   var yr = period;
-  document.getElementById('m-buy-lbl').textContent  = yr+'-yr total: buy';
-  document.getElementById('m-caas-lbl').textContent = yr+'-yr total: caas';
+
+  // Build detail lines for metrics cards
+  var buyDetail = buyPath === 'cash'
+    ? $d(Math.round(bpTax)) + ' system · ' + $d(Math.round(mnt*yr + flt*yr + rep*yr + iaq*yr)) + ' ownership costs'
+    : $d(Math.round(lp*lt)) + ' loan · ' + $d(Math.round(intPaid)) + ' interest · ' + $d(Math.round(mnt*yr + flt*yr + rep*yr + iaq*yr)) + ' ownership';
+
+  var caasDetail = 'contract: ' + $d(Math.round(cContractPmts));
+  if (caasPath === 'payoff' && residual > 0) caasDetail += ' · residual: ' + $d(residual);
+  if (postMonths > 0) caasDetail += ' · post-contract: ' + $d(Math.round((mnt/12+flt/12+rep/12+iaq/12)*postMonths));
+
+  document.getElementById('m-buy-lbl').textContent  = yr+'-yr Total Cost of Ownership';
+  document.getElementById('m-caas-lbl').textContent = yr+'-yr Total Cost of Ownership';
   document.getElementById('m-buy-val').textContent   = $d(buyTotal);
   document.getElementById('m-buy-avg').textContent   = $mo(buyAvg)+' avg';
+  document.getElementById('m-buy-detail').textContent = buyDetail;
   document.getElementById('m-caas-val').textContent  = $d(caasTotal);
   document.getElementById('m-caas-avg').textContent  = $mo(caasAvg)+' avg';
+  document.getElementById('m-caas-detail').textContent = caasDetail;
 
   if (be) {
     var beYr = Math.floor(be/12), beMo = be%12;
