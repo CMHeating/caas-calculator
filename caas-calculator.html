@@ -282,8 +282,10 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
         </div>
         <div class="two">
           <div class="field">
-            <div class="lbl">Repair budget / yr <span class="tip" data-tip="Average annual repair cost. Grows as system ages. Industry avg: $250/yr">?</span></div>
+            <div class="lbl">Repair budget yr 1–10 <span class="tip" data-tip="Labor costs within warranty period. Typically $250/yr.">?</span></div>
             <div class="iw d"><input type="number" id="annualRepairs" value="250" min="0" step="10" oninput="autoCalc()"></div>
+            <div class="lbl" style="margin-top:8px">Repair budget yr 11–15 <span class="tip" data-tip="Out-of-warranty costs increase significantly after year 10. Typically $400+/yr.">?</span></div>
+            <div class="iw d"><input type="number" id="annualRepairsPost" value="400" min="0" step="10" oninput="autoCalc()"></div>
           </div>
           <div class="field">
             <div class="lbl">IAQ / UV bulbs / yr <span class="tip" data-tip="$500 bulb every 3 years = ~$167/yr">?</span></div>
@@ -527,10 +529,10 @@ function clearResults() {
 
 // Default values per tier (price editable, rest are defaults)
 var TIER_DEFAULTS = {
-  value:  { apr:9.99, loanTerm:84,  annualMaint:379, annualFilters:180, annualRepairs:250, caasMonthly:79,  caasTermMonths:96 },
-  good:   { apr:9.99, loanTerm:84,  annualMaint:379, annualFilters:180, annualRepairs:250, caasMonthly:99,  caasTermMonths:96 },
-  better: { apr:9.99, loanTerm:120, annualMaint:379, annualFilters:180, annualRepairs:250, caasMonthly:149, caasTermMonths:96 },
-  best:   { apr:9.99, loanTerm:120, annualMaint:379, annualFilters:180, annualRepairs:250, caasMonthly:199, caasTermMonths:96 },
+  value:  { apr:9.99, loanTerm:84,  annualMaint:379, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:79,  caasTermMonths:96 },
+  good:   { apr:9.99, loanTerm:84,  annualMaint:379, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:99,  caasTermMonths:96 },
+  better: { apr:9.99, loanTerm:120, annualMaint:379, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:149, caasTermMonths:96 },
+  best:   { apr:9.99, loanTerm:120, annualMaint:379, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:199, caasTermMonths:96 },
 };
 
 var TIER_LABELS = { value:'Value', good:'Good', better:'Better', best:'Best', custom:'Custom' };
@@ -557,6 +559,7 @@ function selectPreset(name, btn) {
   sel.value = [379,207].includes(d.annualMaint) ? String(d.annualMaint) : 'custom';
   document.getElementById('annualFilters').value = d.annualFilters;
   document.getElementById('annualRepairs').value = d.annualRepairs;
+  document.getElementById('annualRepairsPost').value = d.annualRepairsPost;
   document.getElementById('caasMonthly').value   = d.caasMonthly;
   document.getElementById('caasTermMonths').value= d.caasTermMonths;
 
@@ -644,7 +647,8 @@ function calc() {
   var lt  = buyPath === 'cash' ? 0 : (gi('loanTerm') || 120);
   var mnt = gv('annualMaint');
   var flt = gv('annualFilters');
-  var rep = gv('annualRepairs');
+  var rep     = gv('annualRepairs');       // yr 1-10
+  var repPost = gv('annualRepairsPost');   // yr 11+
   var iaq = gv('annualIAQ');
   var cmoRaw = gv('caasMonthly');
   var cmo = cmoRaw;
@@ -672,23 +676,25 @@ function calc() {
 
   var infRate = gv('inflationRate') / 100;
 
-  var mMnt = mnt/12, mFlt = flt/12, mRep = rep/12, mIAQ = iaq/12;
+  var mMnt = mnt/12, mFlt = flt/12, mRep = rep/12, mRepPost = repPost/12, mIAQ = iaq/12;
 
   // ── BUY ──
   var buyC = [buyPath === 'cash' ? bpTax : 0], buyM = [buyPath === 'cash' ? bpTax : 0];
   for (var m = 1; m <= months; m++) {
-    var inf = Math.pow(1 + infRate, Math.floor((m-1)/12)); // inflation factor for this month's year
-    var bm = (buyPath === 'finance' && m <= lt ? lp : 0) + (mMnt + mFlt + mRep + mIAQ) * inf;
+    var inf = Math.pow(1 + infRate, Math.floor((m-1)/12));
+    var mRepNow = m <= 120 ? mRep : mRepPost; // $250/yr first 10yr, $400/yr after
+    var bm = (buyPath === 'finance' && m <= lt ? lp : 0) + (mMnt + mFlt + mRepNow + mIAQ) * inf;
     bm = Math.max(0, bm);
     buyM.push(bm);
     buyC.push(buyC[m-1] + bm);
   }
 
   // Calculate inflation premium for breakdown table
-  var flatOngoing = (mMnt + mFlt + mRep + mIAQ) * months; // no inflation
-  var inflatedOngoing = 0;
+  var flatOngoing = 0, inflatedOngoing = 0;
   for (var m = 1; m <= months; m++) {
-    inflatedOngoing += (mMnt + mFlt + mRep + mIAQ) * Math.pow(1 + infRate, Math.floor((m-1)/12));
+    var mRepNow = m <= 120 ? mRep : mRepPost;
+    flatOngoing     += (mMnt + mFlt + mRepNow + mIAQ);
+    inflatedOngoing += (mMnt + mFlt + mRepNow + mIAQ) * Math.pow(1 + infRate, Math.floor((m-1)/12));
   }
   var inflationPremium = inflatedOngoing - flatOngoing;
 
@@ -698,14 +704,14 @@ function calc() {
 
   for (var m = 1; m <= months; m++) {
     var inf = Math.pow(1 + infRate, Math.floor((m-1)/12));
+    var mRepNow = m <= 120 ? mRep : mRepPost;
     var cm = 0;
     if (m <= contractEnd) {
-      cm = cmo; // fixed monthly — inflation-proof during contract
-      if (!cRepairs) cm += mRep * inf;
+      cm = cmo;
+      if (!cRepairs) cm += mRepNow * inf;
       cm = Math.max(0, cm);
     } else {
-      // After contract: customer pays own costs, now subject to inflation
-      cm = (mMnt + mFlt + mRep + mIAQ) * inf;
+      cm = (mMnt + mFlt + mRepNow + mIAQ) * inf;
       cm = Math.max(0, cm);
     }
     caasM.push(cm);
@@ -748,9 +754,10 @@ function calc() {
   var yr = period;
 
   // Build detail lines for metrics cards
+  var totalRepairs = rep*10 + repPost*(yr-10);
   var buyDetail = buyPath === 'cash'
-    ? $d(Math.round(bpTax)) + ' system · ' + $d(Math.round(mnt*yr + flt*yr + rep*yr + iaq*yr)) + ' ownership costs'
-    : $d(Math.round(lp*lt)) + ' loan · ' + $d(Math.round(intPaid)) + ' interest · ' + $d(Math.round(mnt*yr + flt*yr + rep*yr + iaq*yr)) + ' ownership';
+    ? $d(Math.round(bpTax)) + ' system · ' + $d(Math.round(mnt*yr + flt*yr + totalRepairs + iaq*yr)) + ' ownership costs'
+    : $d(Math.round(lp*lt)) + ' loan · ' + $d(Math.round(intPaid)) + ' interest · ' + $d(Math.round(mnt*yr + flt*yr + totalRepairs + iaq*yr)) + ' ownership';
 
   var caasDetail = 'contract: ' + $d(Math.round(cContractPmts));
   if (caasPath === 'payoff' && residual > 0) caasDetail += ' · residual: ' + $d(residual);
@@ -851,7 +858,8 @@ function calc() {
     ['Residual / end of contract',     '—',           caasPath==='payoff' ? $d(residual) : pathLabel],
     ['Maintenance ('+yr+' yr)',        $d(mnt*yr),    caasIncludedLabel(mnt)],
     ['Filters ('+yr+' yr)',            $d(flt*yr),    caasIncludedLabel(flt)],
-    ['Repairs ('+yr+' yr)',            $d(rep*yr),    cRepairs ? caasIncludedLabel(rep) : $d(rep*yr)],
+    ['Repairs yr 1–10',               $d(rep*10),    cRepairs ? '✓ included' : $d(rep*10)],
+    ['Repairs yr 11–'+yr+' (out of warranty)',  $d(repPost*(yr-10)),  cRepairs ? '✓ included' : $d(repPost*(yr-10))],
     ['IAQ / UV bulbs ('+yr+' yr)',     $d(iaq*yr),    caasIncludedLabel(iaq)],
     ['Cost inflation ('+infRate*100+'%/yr)',  '+' + $d(Math.round(inflationPremium)) + ' on maint, repairs, filters, IAQ', 'Fixed monthly — inflation-proof'],
     ['TOTAL',                          $d(buyTotal),  $d(caasTotal)]
