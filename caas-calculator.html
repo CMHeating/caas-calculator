@@ -416,6 +416,12 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
       </div>
     </div>
 
+    <div class="bdown-card" id="caas-invest-card" style="display:none;border-left:4px solid #3aaa35;background:linear-gradient(135deg,#f0faf4,#fff)">
+      <h3>✅ CaaS + Invest vs. Writing a Check</h3>
+      <p style="font-size:12px;color:#6b6b7b;margin-bottom:14px">What if instead of writing a check, you did CaaS and invested that money?</p>
+      <div id="caas-invest-body"></div>
+    </div>
+
     <div class="bdown-card" id="replacement-cost-card" style="display:none;border-left:4px solid #3aaa35">
       <h3>🔄 Year <span id="rc-yr">15</span> System Replacement Cost</h3>
       <p style="font-size:12px;color:#6b6b7b;margin-bottom:14px">What will it cost to replace this system when the CaaS contract ends?</p>
@@ -459,9 +465,9 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
       <h3>💰 The Investment Angle</h3>
       <p style="font-size:12px;color:#6b6b7b;margin-bottom:10px">What if the money spent on buying was invested instead?</p>
       <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap" id="inv-rate-presets">
-        <button class="rpbtn" onclick="setInvRate(4,'monthly',this)" title="HYSA interest taxed as ordinary income each year">4% HYSA</button>
+        <button class="rpbtn active" onclick="setInvRate(4,'monthly',this)" title="HYSA interest taxed as ordinary income each year">4% HYSA</button>
         <button class="rpbtn" onclick="setInvRate(8,'annual',this)" title="10% nominal minus ~2-3% inflation = real purchasing power return">8% S&amp;P real</button>
-        <button class="rpbtn active" onclick="setInvRate(10,'annual',this)" title="Historical S&P 500 average — does not account for inflation">10% S&amp;P nominal</button>
+        <button class="rpbtn" onclick="setInvRate(10,'annual',this)" title="Historical S&P 500 average — does not account for inflation">10% S&amp;P nominal</button>
       </div>
       <div style="font-size:11px;color:#888;margin-bottom:14px;line-height:1.5">
         <strong>10% nominal</strong> = historical S&amp;P avg before inflation &nbsp;·&nbsp; <strong>8% real</strong> = inflation-adjusted purchasing power &nbsp;·&nbsp; <strong>Tax note:</strong> long-term capital gains ~15% applies at liquidation; HYSA interest taxed as ordinary income annually
@@ -569,8 +575,20 @@ function switchTab(t, btn) {
   renderChart(S.labels, t==='cum' ? S.buyC : S.buyM, t==='cum' ? S.caasC : S.caasM);
 }
 
-var invRate = 0.10;
-var invCompound = 'annual'; // 'monthly' for HYSA, 'annual' for S&P
+var invRate = 0.04;
+var invCompound = 'monthly'; // 'monthly' for HYSA, 'annual' for S&P
+
+function fvLump(principal, years) {
+  if (invCompound === 'monthly') {
+    return principal * Math.pow(1 + invRate/12, years*12);
+  }
+  return principal * Math.pow(1 + invRate, years);
+}
+
+function fvMonthly(mo, nMonths) {
+  var r = invCompound === 'monthly' ? invRate/12 : Math.pow(1+invRate, 1/12)-1;
+  return mo * ((Math.pow(1+r, nMonths)-1)/r);
+}
 
 function setInvRate(rate, compound, btn) {
   invRate = rate / 100;
@@ -838,6 +856,49 @@ function calc() {
 
   document.getElementById('results').classList.add('show');
 
+  // ── CaaS + Invest vs Write a Check ───────────────────────────────
+  var caasInvestCard = document.getElementById('caas-invest-card');
+  var caasInvestBody = document.getElementById('caas-invest-body');
+
+  if (buyPath === 'cash' && bp > 0 && cmoRaw > 0) {
+    var lumpSum     = bpTax;
+    var investedFV  = fvLump(lumpSum, yr);
+    var netPosition = investedFV - caasTotal;
+    var rateShort   = invCompound === 'monthly' ? '4% HYSA' : (invRate===0.08 ? '8% S&P real' : '10% S&P nom.');
+
+    caasInvestBody.innerHTML =
+      '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">' +
+
+        '<div style="flex:1;min-width:180px;padding:14px;background:#fff5f5;border-radius:10px;border:1px solid rgba(192,0,0,0.15)">' +
+          '<div style="font-size:11px;font-weight:700;color:#b00000;letter-spacing:.05em;margin-bottom:8px">✏️ WRITE A CHECK</div>' +
+          '<div style="font-size:22px;font-weight:800;color:#b00000">-' + $d(Math.round(lumpSum)) + '</div>' +
+          '<div style="font-size:11px;color:#888;margin-top:4px">Out of pocket, day 1</div>' +
+          '<div style="font-size:11px;color:#888;margin-top:2px">System depreciates over time</div>' +
+          '<div style="font-size:13px;font-weight:700;color:#b00000;margin-top:10px;padding-top:8px;border-top:1px solid rgba(192,0,0,0.15)">Net yr ' + yr + ': <span style="font-size:16px">-' + $d(Math.round(lumpSum)) + '</span></div>' +
+        '</div>' +
+
+        '<div style="display:flex;align-items:center;font-size:24px;padding:0 4px">vs</div>' +
+
+        '<div style="flex:1;min-width:180px;padding:14px;background:#f0faf4;border-radius:10px;border:1px solid rgba(58,170,53,0.25)">' +
+          '<div style="font-size:11px;font-weight:700;color:#168a20;letter-spacing:.05em;margin-bottom:8px">✅ CaaS + INVEST</div>' +
+          '<div style="font-size:14px;color:#4a4a5a;line-height:1.8">' +
+            '<div>' + $d(Math.round(lumpSum)) + ' invested at <strong>' + rateShort + '</strong></div>' +
+            '<div style="font-size:18px;font-weight:800;color:#168a20">= ' + $d(Math.round(investedFV)) + '</div>' +
+            '<div style="color:#c97d10">minus CaaS payments: -' + $d(caasTotal) + '</div>' +
+          '</div>' +
+          '<div style="font-size:13px;font-weight:700;color:#168a20;margin-top:10px;padding-top:8px;border-top:1px solid rgba(58,170,53,0.2)">Net yr ' + yr + ': <span style="font-size:16px">+' + $d(Math.round(netPosition)) + '</span></div>' +
+        '</div>' +
+
+      '</div>' +
+      '<div style="padding:10px 12px;background:rgba(58,170,53,0.08);border-radius:8px;border-left:3px solid #3aaa35;font-size:12px;color:#4a4a5a;line-height:1.6">' +
+        '💡 CaaS + investing the system cost leaves you <strong>' + $d(Math.round(netPosition + lumpSum)) + ' better off</strong> in year ' + yr + ' than writing a check — plus you never owned the risk of a depreciating system.' +
+      '</div>';
+
+    caasInvestCard.style.display = 'block';
+  } else {
+    caasInvestCard.style.display = 'none';
+  }
+
   // ── Investment Angle ──────────────────────────────────────────────
   var investCard = document.getElementById('invest-angle-card');
   var investBody = document.getElementById('invest-angle-body');
@@ -847,18 +908,6 @@ function calc() {
     : annRate === 0.08
       ? '8% S&amp;P real return (inflation-adjusted)'
       : '10% S&amp;P nominal (historical avg, pre-inflation)';
-
-  function fvLump(principal, years) {
-    if (invCompound === 'monthly') {
-      return principal * Math.pow(1 + annRate/12, years*12);
-    }
-    return principal * Math.pow(1 + annRate, years);
-  }
-
-  function fvMonthly(mo, nMonths) {
-    var r = invCompound === 'monthly' ? annRate/12 : Math.pow(1+annRate, 1/12)-1;
-    return mo * ((Math.pow(1+r, nMonths)-1)/r);
-  }
 
   var html = '';
 
