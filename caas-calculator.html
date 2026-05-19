@@ -267,12 +267,17 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
         <div class="sub">Annual ownership costs</div>
         <div class="two">
           <div class="field">
-            <div class="lbl">Maintenance plan <span class="tip" data-tip="Annual service contract / tune-up. Typical: $200–$350/yr">?</span></div>
-            <div class="iw d"><input type="number" id="annualMaint" value="249" min="0" step="10" oninput="autoCalc()"></div>
+            <div class="lbl">Maintenance plan <span class="tip" data-tip="Annual service contract / tune-up. Heat &amp; Cool covers both furnace and AC.">?</span></div>
+            <select class="field-select" id="maintPlanSelect" onchange="setMaintPlan(this.value)" style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;background:#fff;color:#1a3560;margin-bottom:6px">
+              <option value="379">Heat &amp; Cool (furnace + AC) — $379/yr</option>
+              <option value="207">Furnace or AC only — $207/yr</option>
+              <option value="custom">Custom</option>
+            </select>
+            <div class="iw d"><input type="number" id="annualMaint" value="379" min="0" step="10" oninput="autoCalc()"></div>
           </div>
           <div class="field">
             <div class="lbl">Filters / yr <span class="tip" data-tip="Annual filter replacement cost. ~$50/yr">?</span></div>
-            <div class="iw d"><input type="number" id="annualFilters" value="50" min="0" step="10" oninput="autoCalc()"></div>
+            <div class="iw d"><input type="number" id="annualFilters" value="180" min="0" step="10" oninput="autoCalc()"></div>
           </div>
         </div>
         <div class="two">
@@ -514,10 +519,10 @@ function clearResults() {
 
 // Default values per tier (price editable, rest are defaults)
 var TIER_DEFAULTS = {
-  value:  { apr:9.99, loanTerm:84,  annualMaint:199, annualFilters:50, annualRepairs:250, caasMonthly:79,  caasTermMonths:96 },
-  good:   { apr:9.99, loanTerm:84,  annualMaint:249, annualFilters:50, annualRepairs:250, caasMonthly:99,  caasTermMonths:96 },
-  better: { apr:9.99, loanTerm:120, annualMaint:299, annualFilters:50, annualRepairs:250, caasMonthly:149, caasTermMonths:96 },
-  best:   { apr:9.99, loanTerm:120, annualMaint:349, annualFilters:50, annualRepairs:250, caasMonthly:199, caasTermMonths:96 },
+  value:  { apr:9.99, loanTerm:84,  annualMaint:379, annualFilters:180, annualRepairs:250, caasMonthly:79,  caasTermMonths:96 },
+  good:   { apr:9.99, loanTerm:84,  annualMaint:379, annualFilters:180, annualRepairs:250, caasMonthly:99,  caasTermMonths:96 },
+  better: { apr:9.99, loanTerm:120, annualMaint:379, annualFilters:180, annualRepairs:250, caasMonthly:149, caasTermMonths:96 },
+  best:   { apr:9.99, loanTerm:120, annualMaint:379, annualFilters:180, annualRepairs:250, caasMonthly:199, caasTermMonths:96 },
 };
 
 var TIER_LABELS = { value:'Value', good:'Good', better:'Better', best:'Best', custom:'Custom' };
@@ -540,6 +545,8 @@ function selectPreset(name, btn) {
   document.getElementById('apr').value           = d.apr;
   document.getElementById('loanTerm').value      = d.loanTerm;
   document.getElementById('annualMaint').value   = d.annualMaint;
+  var sel = document.getElementById('maintPlanSelect');
+  sel.value = [379,207].includes(d.annualMaint) ? String(d.annualMaint) : 'custom';
   document.getElementById('annualFilters').value = d.annualFilters;
   document.getElementById('annualRepairs').value = d.annualRepairs;
   document.getElementById('caasMonthly').value   = d.caasMonthly;
@@ -571,6 +578,13 @@ function setInvRate(rate, compound, btn) {
   document.querySelectorAll('#inv-rate-presets .rpbtn').forEach(function(b){ b.classList.remove('active'); });
   btn.classList.add('active');
   autoCalc();
+}
+
+function setMaintPlan(val) {
+  if (val !== 'custom') {
+    document.getElementById('annualMaint').value = val;
+    autoCalc();
+  }
 }
 
 function setInfPreset(val, btn) {
@@ -930,7 +944,7 @@ function calc() {
       '</div>' +
 
       '<div style="padding:10px 12px;background:rgba(201,125,16,0.08);border-radius:8px;border-left:3px solid var(--amber);font-size:12px;color:#4a4a5a;line-height:1.6">' +
-        '🔄 <strong>With CaaS?</strong> When you\'re ready for a new system, simply sign a new contract — 15-year warranty, peace-of-mind cost of ownership built in, and inflation-free payments moving forward.' +
+        '🔄 <strong>Ready for a new system?</strong> In year ' + yr + ', replacing this system will cost an estimated <strong>' + $d(Math.round(futureCost)) + '</strong> out-of-pocket. Simply sign a new CaaS contract instead — 15-year warranty, peace-of-mind cost of ownership built in, and inflation-free payments moving forward.' +
       '</div>';
 
     rcCard.style.display = 'block';
