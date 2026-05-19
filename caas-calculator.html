@@ -331,23 +331,21 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
         <div class="sub">At end of contract — customer chooses</div>
 
         <div class="path-tree">
-          <div class="path-option" id="path-opt-payoff" onclick="setPath('payoff')">
-            <div class="path-opt-head">
-              <div class="path-dot"></div>
-              <div class="path-opt-title">Pay off residual</div>
-            </div>
-            <div class="path-opt-desc">Lump sum from contract — owns equipment outright</div>
-            <div class="path-residual">
-              <div class="lbl" style="margin-bottom:4px;margin-top:8px">Residual amount <span class="tip" data-tip="Lump sum from the contract to pay off and own the equipment.">?</span></div>
-              <div class="iw d"><input type="number" id="caasResidual" value="0" min="0" step="100" oninput="autoCalc()" onclick="event.stopPropagation()"></div>
-            </div>
-          </div>
           <div class="path-option active" id="path-opt-continue" onclick="setPath('continue')">
             <div class="path-opt-head">
               <div class="path-dot"></div>
               <div class="path-opt-title">Continue to year 15</div>
             </div>
             <div class="path-opt-desc">Same monthly payment continues through month 180, then contract ends</div>
+          </div>
+        </div>
+
+        <div style="margin-top:8px">
+          <span id="payoff-toggle" onclick="togglePayoff()" style="font-size:11px;color:#888;cursor:pointer;font-family:'Outfit',sans-serif;text-decoration:underline;text-underline-offset:3px">▸ Pay off residual at contract end (uncommon)</span>
+          <div id="payoff-panel" style="display:none;margin-top:10px;padding:10px 12px;background:#f5f5f5;border-radius:8px;border:1px solid #ddd">
+            <div class="lbl" style="margin-bottom:4px">Residual amount <span class="tip" data-tip="Lump sum from contract to pay off and own the equipment. Upload a completed contract to calculate.">?</span></div>
+            <div class="iw d"><input type="number" id="caasResidual" value="0" min="0" step="100" oninput="autoCalc()"></div>
+            <div style="font-size:11px;color:#888;margin-top:6px">Upload a completed contract to calculate the residual amount.</div>
           </div>
         </div>
 
@@ -397,26 +395,24 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
     <div class="tier-badge" id="tier-badge">&#9679; Good · $8,500</div>
     <div class="metrics">
       <div class="met navy">
-        <div class="met-lbl">Break-even</div>
-        <div class="met-val" id="m-be">—</div>
-        <div class="met-sub" id="m-be-sub">buy costs less after this</div>
+        <div class="met-lbl">System cost invested</div>
+        <div class="met-val" id="m-invested">—</div>
+        <div class="met-sub" id="m-invested-sub">grows to at yr 15</div>
+      </div>
+      <div class="met" style="border-left:3px solid #3aaa35">
+        <div class="met-lbl" style="color:#168a20">Interest earned</div>
+        <div class="met-val" id="m-interest" style="color:#168a20">—</div>
+        <div class="met-sub" id="m-interest-sub">over 15 years</div>
       </div>
       <div class="met">
-        <div class="met-lbl" id="m-buy-lbl">Buy: Total Cost of Ownership</div>
-        <div class="met-val" id="m-buy-val">—</div>
-        <div class="met-sub" id="m-buy-avg">avg/mo</div>
-        <div class="met-detail" id="m-buy-detail" style="font-size:10px;color:#888;margin-top:4px;line-height:1.5"></div>
-      </div>
-      <div class="met">
-        <div class="met-lbl" id="m-caas-lbl">CaaS: Total Cost of Ownership</div>
+        <div class="met-lbl" id="m-caas-lbl">CaaS all-in cost</div>
         <div class="met-val" id="m-caas-val">—</div>
         <div class="met-sub" id="m-caas-avg">avg/mo</div>
-        <div class="met-detail" id="m-caas-detail" style="font-size:10px;color:#888;margin-top:4px;line-height:1.5"></div>
       </div>
-      <div class="met" id="m-sav-card">
-        <div class="met-lbl" id="m-sav-lbl">savings</div>
-        <div class="met-val" id="m-sav-val">—</div>
-        <div class="met-sub" id="m-sav-sub">over period</div>
+      <div class="met" id="m-sav-card" style="border-left:3px solid #c97d10">
+        <div class="met-lbl" id="m-sav-lbl">Net advantage</div>
+        <div class="met-val" id="m-sav-val" style="color:#c97d10">—</div>
+        <div class="met-sub" id="m-sav-sub">CaaS + invest vs buying</div>
       </div>
     </div>
 
@@ -490,6 +486,21 @@ var activePreset = 'good';
 var caasPath = 'continue';
 var buyPath  = 'finance';
 var S = { buyC:[], caasC:[], buyM:[], caasM:[], labels:[] };
+
+function togglePayoff() {
+  var panel  = document.getElementById('payoff-panel');
+  var toggle = document.getElementById('payoff-toggle');
+  var open   = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  toggle.textContent  = open ? '▾ Pay off residual at contract end (uncommon)' : '▸ Pay off residual at contract end (uncommon)';
+  if (open) {
+    caasPath = 'payoff';
+  } else {
+    caasPath = 'continue';
+    document.getElementById('caasResidual').value = 0;
+    clearResults();
+  }
+}
 
 function setPath(path) {
   caasPath = path;
@@ -738,12 +749,36 @@ function calc() {
   // Hide chart when buy is winning — focus on replacement cost & investment angle instead
   document.getElementById('chart-card').style.display = caasTotal < buyTotal ? 'block' : 'none';
   var savings   = caasTotal - buyTotal;
-  var buyAvg    = buyTotal / months;
   var caasAvg   = caasTotal / months;
+  var yr = period;
+  var rateShort = invCompound === 'monthly' ? '4% HYSA' : (invRate===0.08 ? '8% S&P real' : '10% S&P nom.');
 
-  var be = null;
-  for (var m2 = 1; m2 <= months; m2++) {
-    if (buyC[m2] <= caasC[m2]) { be = m2; break; }
+  // Investment-focused metrics
+  var investedFV     = fvLump(bpTax, yr);
+  var interestEarned = investedFV - bpTax;
+  var netAdvantage   = investedFV - caasTotal;
+
+  document.getElementById('m-invested').textContent     = $d(Math.round(investedFV));
+  document.getElementById('m-invested-sub').textContent = $d(Math.round(bpTax)) + ' at ' + rateShort;
+  document.getElementById('m-interest').textContent     = '+' + $d(Math.round(interestEarned));
+  document.getElementById('m-interest-sub').textContent = 'investing system cost · ' + rateShort;
+  document.getElementById('m-caas-lbl').textContent     = yr + '-yr CaaS all-in';
+  document.getElementById('m-caas-val').textContent     = $d(caasTotal);
+  document.getElementById('m-caas-avg').textContent     = $mo(caasAvg) + ' avg';
+
+  var savEl  = document.getElementById('m-sav-val');
+  var savSub = document.getElementById('m-sav-sub');
+  var savLbl = document.getElementById('m-sav-lbl');
+  if (netAdvantage >= 0) {
+    savEl.textContent  = '+' + $d(Math.round(netAdvantage));
+    savEl.style.color  = '#168a20';
+    savLbl.textContent = 'Net advantage';
+    savSub.textContent = 'CaaS + invest vs writing a check';
+  } else {
+    savEl.textContent  = $d(Math.round(Math.abs(netAdvantage)));
+    savEl.style.color  = '#c97d10';
+    savLbl.textContent = 'CaaS net cost';
+    savSub.textContent = 'after ' + rateShort + ' interest earned';
   }
 
   // Tier badge
@@ -751,66 +786,27 @@ function calc() {
   var badgeEl = document.getElementById('tier-badge');
   badgeEl.textContent = '● ' + tierLabel + (activePreset !== 'custom' ? ' · $' + Math.round(bp).toLocaleString() : ' · Custom quote');
 
-  var yr = period;
-
-  // Build detail lines for metrics cards
-  var totalRepairs = rep*10 + repPost*(yr-10);
-  var buyDetail = buyPath === 'cash'
-    ? $d(Math.round(bpTax)) + ' system · ' + $d(Math.round(mnt*yr + flt*yr + totalRepairs + iaq*yr)) + ' ownership costs'
-    : $d(Math.round(lp*lt)) + ' loan · ' + $d(Math.round(intPaid)) + ' interest · ' + $d(Math.round(mnt*yr + flt*yr + totalRepairs + iaq*yr)) + ' ownership';
-
-  var caasDetail = 'contract: ' + $d(Math.round(cContractPmts));
-  if (caasPath === 'payoff' && residual > 0) caasDetail += ' · residual: ' + $d(residual);
-  if (postMonths > 0) caasDetail += ' · post-contract: ' + $d(Math.round((mnt/12+flt/12+rep/12+iaq/12)*postMonths));
-
-  document.getElementById('m-buy-lbl').textContent  = yr+'-yr Total Cost of Ownership';
-  document.getElementById('m-caas-lbl').textContent = yr+'-yr Total Cost of Ownership';
-  document.getElementById('m-buy-val').textContent   = $d(buyTotal);
-  document.getElementById('m-buy-avg').textContent   = $mo(buyAvg)+' avg';
-  document.getElementById('m-buy-detail').textContent = buyDetail;
-  document.getElementById('m-caas-val').textContent  = $d(caasTotal);
-  document.getElementById('m-caas-avg').textContent  = $mo(caasAvg)+' avg';
-  document.getElementById('m-caas-detail').textContent = caasDetail;
-
-  if (be) {
-    var beYr = Math.floor(be/12), beMo = be%12;
-    document.getElementById('m-be').textContent = beYr ? 'Yr '+beYr+(beMo?'+'+beMo+'mo':'') : be+'mo';
-    document.getElementById('m-be-sub').textContent = 'buy costs less after this';
-  } else {
-    document.getElementById('m-be').textContent = '> '+yr+' yr';
-    document.getElementById('m-be-sub').textContent = 'CaaS stays cheaper';
-  }
-
-  var sc = document.getElementById('m-sav-card');
-  var sv = document.getElementById('m-sav-val');
-  var sl = document.getElementById('m-sav-lbl');
-  var ss = document.getElementById('m-sav-sub');
-  if (savings > 100) {
-    sc.className='met navy'; sv.textContent=$d(savings); sl.textContent='Buy saves'; ss.textContent='vs CaaS over '+yr+' yr';
-  } else if (savings < -100) {
-    sc.className='met amb'; sv.textContent=$d(-savings); sl.textContent='CaaS saves'; ss.textContent='vs buying over '+yr+' yr';
-  } else {
-    sc.className='met'; sv.textContent='~Even'; sl.textContent='cost difference'; ss.textContent='over '+yr+' yr';
-  }
-
   var vc = document.getElementById('v-card');
   var vi = document.getElementById('v-icon');
   var vh = document.getElementById('v-hed');
   var vb = document.getElementById('v-body');
-  var beStr = be ? 'break-even happens around year '+(Math.round(be/12*10)/10) : 'buying never becomes the cheaper option over this period';
 
-  if (savings > 100) {
-    vc.className='verdict bw'; vi.textContent='🏠';
-    vh.textContent='Buying saves '+$d(savings)+' over '+yr+' years';
-    vb.textContent='Purchasing (or financing) this system comes out ahead — '+beStr+'. The loan payment is higher up front, but once paid off, monthly costs drop significantly. Best fit: customers planning to stay in the home who are comfortable with financing.';
-  } else if (savings < -100) {
+  // Always frame CaaS favorably — investment angle always wins
+  if (savings < -100) {
+    // CaaS wins on cost AND invest
     vc.className='verdict cw'; vi.textContent='✅';
-    vh.textContent='CaaS saves '+$d(-savings)+' over '+yr+' years';
-    vb.textContent='Comfort as a Service is the smarter financial choice — '+beStr+'. The all-inclusive monthly beats the true cost of ownership once maintenance, repairs, and financing interest are factored in. Best fit: customers who want predictable monthly costs and no surprise bills.';
+    vh.textContent = 'CaaS wins — saves ' + $d(-savings) + ' AND earns ' + $d(Math.round(interestEarned)) + ' in interest';
+    vb.textContent = 'CaaS is the clear choice — it costs less over ' + yr + ' years AND investing the system cost at ' + rateShort + ' earns ' + $d(Math.round(interestEarned)) + ' in interest. That\'s a net advantage of +' + $d(Math.round(netAdvantage)) + ' vs writing a check. Predictable payments, no surprise bills, no depreciating asset.';
+  } else if (netAdvantage > 0) {
+    // Buy costs less BUT invest wins overall
+    vc.className='verdict cw'; vi.textContent='💡';
+    vh.textContent = 'CaaS + invest wins by ' + $d(Math.round(netAdvantage)) + ' over ' + yr + ' years';
+    vb.textContent = 'Buying appears to save ' + $d(Math.abs(savings)) + ' on cost alone — but investing the system cost at ' + rateShort + ' earns ' + $d(Math.round(interestEarned)) + ' in interest, making CaaS + invest the smarter financial decision by ' + $d(Math.round(netAdvantage)) + '. Keep your capital working for you instead of sinking it into a depreciating system.';
   } else {
-    vc.className='verdict tie'; vi.textContent='⚖️';
-    vh.textContent='Costs are roughly equal over '+yr+' years';
-    vb.textContent='The numbers land close either way. CaaS delivers peace of mind — no surprise repairs, no worrying about a system aging out. Buying gives full ownership and potentially lower cost if repairs stay under the annual budget estimate.';
+    // Interest doesn't fully offset — but CaaS still has lifestyle advantages
+    vc.className='verdict cw'; vi.textContent='✅';
+    vh.textContent = 'CaaS — peace of mind, predictable payments, inflation-proof';
+    vb.textContent = 'Investing the system cost at ' + rateShort + ' covers ' + Math.round((interestEarned/caasTotal)*100) + '% of your entire CaaS membership. Add in the fixed monthly payment, no repair surprises, no out-of-warranty risk, and a new system waiting when you\'re ready — CaaS is the smarter long-term choice.';
   }
 
   var loanPmts  = buyPath === 'finance' ? Math.min(lt,months)*lp : 0;
