@@ -790,6 +790,28 @@ function calc() {
     return '✓ incl. thru yr ' + contractYrs + ', then ' + $d(Math.round(postCost));
   }
 
+  // ── Investment opportunity rows ──
+  var invRows = [];
+  if (buyPath === 'cash') {
+    var lumpInv = bpTax;
+    var fvInv = fvLump(lumpInv, yr);
+    invRows.push(['💰 Invest lump sum at ' + (invRate*100).toFixed(0) + '%', $d(Math.round(lumpInv)) + ' → ' + $d(Math.round(fvInv)), '—']);
+    invRows.push(['Net position (invest vs CaaS)', $d(Math.round(fvInv)), $d(caasTotal)]);
+  } else {
+    var lumpInv = bpTax;
+    var fvLumpInv = fvLump(lumpInv, yr);
+    var netInv = fvLumpInv - intPaid;
+    invRows.push(['💰 Invest system cost at ' + (invRate*100).toFixed(0) + '%', $d(Math.round(lumpInv)) + ' → ' + $d(Math.round(fvLumpInv)), '—']);
+    invRows.push(['Less: loan interest paid', '-' + $d(Math.round(intPaid)), '—']);
+    invRows.push(['Net investment value', $d(Math.round(netInv)), $d(caasTotal)]);
+    var diff = lp - cmo;
+    if (diff > 0) {
+      var fvGapEnd = fvMonthly(diff, lt);
+      var fvGap15 = fvLump(fvGapEnd, (months - lt) / 12);
+      invRows.push(['💰 Monthly gap invested (' + $mo(diff) + ' × ' + Math.round(lt/12) + 'yr)', $d(Math.round(diff*lt)) + ' → ' + $d(Math.round(fvGap15)), '—']);
+    }
+  }
+
   var rows = [
     ['Equipment (before tax)',          buyPath==='cash' ? $d(bp)+' (cash)' : $d(bp),  $d(cContractPmts)],
     ['Sales tax (10%)',                  buyPath==='cash' ? $d(Math.round(bp*0.10)) : $d(Math.round(bp*0.10))+' (financed)', '✓ in monthly'],
@@ -803,10 +825,16 @@ function calc() {
     ['TOTAL',                          $d(buyTotal),  $d(caasTotal)]
   ];
 
-  document.getElementById('btbody').innerHTML = rows.map(function(r,i){
-    return '<tr'+(i===rows.length-1?' class="total"':'')+'>'+
-      '<td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';
-  }).join('');
+  document.getElementById('btbody').innerHTML =
+    rows.map(function(r,i){
+      return '<tr'+(i===rows.length-1?' class="total"':'')+'>'+
+        '<td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';
+    }).join('') +
+    '<tr><td colspan="3" style="padding:10px 10px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#c97d10;border-top:2px solid #f0ece5">Investment Opportunity (' + (invRate*100).toFixed(0) + '% ' + (invCompound==='monthly'?'HYSA':'S&P') + ')</td></tr>' +
+    invRows.map(function(r){
+      return '<tr style="background:#fffbf5">'+
+        '<td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';
+    }).join('');
 
   document.getElementById('results').classList.add('show');
 
