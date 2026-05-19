@@ -882,16 +882,14 @@ function calc() {
   var caasInvestCard = document.getElementById('caas-invest-card');
   var caasInvestBody = document.getElementById('caas-invest-body');
 
-  if (buyPath === 'cash' && bp > 0 && cmoRaw > 0) {
+  if (bp > 0 && cmoRaw > 0) {
     var lumpSum      = bpTax;
     var investedFV   = fvLump(lumpSum, yr);
     var interestEarned = investedFV - lumpSum;
     var netPosition  = investedFV - caasTotal;
     var rateShort    = invCompound === 'monthly' ? '4% HYSA' : (invRate===0.08 ? '8% S&P real' : '10% S&P nom.');
-    var interestVsCaaS = interestEarned - caasTotal;
     var coversPct    = Math.round((interestEarned / caasTotal) * 100);
 
-    // Interest narrative
     var interestMsg = '';
     if (interestEarned >= caasTotal) {
       interestMsg = '🎯 <strong>Your interest earned (' + $d(Math.round(interestEarned)) + ') more than covers your entire ' + yr + '-yr CaaS membership (' + $d(caasTotal) + ').</strong> You keep the investment principal AND get a new system every contract.';
@@ -899,38 +897,69 @@ function calc() {
       interestMsg = '📈 Your interest earned (<strong>' + $d(Math.round(interestEarned)) + '</strong>) covers <strong>' + coversPct + '%</strong> of your entire ' + yr + '-yr CaaS membership (' + $d(caasTotal) + ').';
     }
 
+    var leftCard = '';
+    var rightCard = '';
+
+    if (buyPath === 'cash') {
+      leftCard =
+        '<div style="font-size:11px;font-weight:700;color:#b00000;letter-spacing:.05em;margin-bottom:8px">✏️ WRITE A CHECK</div>' +
+        '<div style="font-size:22px;font-weight:800;color:#b00000">-' + $d(Math.round(lumpSum)) + '</div>' +
+        '<div style="font-size:11px;color:#888;margin-top:4px">Out of pocket, day 1</div>' +
+        '<div style="font-size:11px;color:#888;margin-top:2px">System depreciates over time</div>' +
+        '<div style="font-size:13px;font-weight:700;color:#b00000;margin-top:10px;padding-top:8px;border-top:1px solid rgba(192,0,0,0.15)">Net yr ' + yr + ': <span style="font-size:16px">-' + $d(Math.round(lumpSum)) + '</span></div>';
+    } else {
+      var diff = lp - cmo;
+      var ltYrs = Math.round(lt/12*10)/10;
+      leftCard =
+        '<div style="font-size:11px;font-weight:700;color:#b00000;letter-spacing:.05em;margin-bottom:8px">🏦 FINANCE THE SYSTEM</div>' +
+        '<div style="font-size:14px;color:#4a4a5a;line-height:1.7">' +
+          '<div>Loan: <strong>' + $mo(lp) + '</strong> × ' + lt + ' mo</div>' +
+          '<div>Total paid: <strong>' + $d(Math.round(lp*lt)) + '</strong></div>' +
+          '<div style="color:#b00000">Interest: <strong>-' + $d(Math.round(intPaid)) + '</strong></div>' +
+        '</div>' +
+        '<div style="font-size:13px;font-weight:700;color:#b00000;margin-top:10px;padding-top:8px;border-top:1px solid rgba(192,0,0,0.15)">Net yr ' + yr + ': <span style="font-size:16px">-' + $d(buyTotal) + '</span></div>';
+    }
+
+    rightCard =
+      '<div style="font-size:11px;font-weight:700;color:#168a20;letter-spacing:.05em;margin-bottom:8px">✅ CaaS + INVEST</div>' +
+      '<div style="font-size:12px;color:#4a4a5a;line-height:1.8">' +
+        '<div>' + $d(Math.round(lumpSum)) + ' invested at <strong>' + rateShort + '</strong></div>' +
+        '<div style="font-size:18px;font-weight:800;color:#168a20">= ' + $d(Math.round(investedFV)) + '</div>' +
+        '<div>Interest earned: <strong style="color:#168a20">+' + $d(Math.round(interestEarned)) + '</strong></div>' +
+        '<div style="color:#c97d10">CaaS payments: -' + $d(caasTotal) + '</div>' +
+      '</div>' +
+      '<div style="font-size:13px;font-weight:700;color:#168a20;margin-top:10px;padding-top:8px;border-top:1px solid rgba(58,170,53,0.2)">Net yr ' + yr + ': <span style="font-size:16px">+' + $d(Math.round(netPosition)) + '</span></div>';
+
+    // Finance extra: show monthly gap invested if loan > CaaS
+    var financeExtra = '';
+    if (buyPath === 'finance') {
+      var diff = lp - cmo;
+      var ltYrs = Math.round(lt/12*10)/10;
+      if (diff > 0) {
+        var fvGapEnd = fvMonthly(diff, lt);
+        var fvGap15  = fvLump(fvGapEnd, (months-lt)/12);
+        financeExtra =
+          '<div style="padding:10px 12px;background:#f5f8ff;border-radius:8px;border-left:3px solid #1a3560;font-size:12px;color:#4a4a5a;line-height:1.6;margin-bottom:10px">' +
+          '📈 <strong>Bonus:</strong> Loan is ' + $mo(lp) + ', CaaS is ' + $mo(cmoRaw) + ' — invest the ' + $mo(diff) + ' monthly gap for ' + ltYrs + ' yrs → <strong>' + $d(Math.round(fvGap15)) + '</strong> by yr ' + yr +
+          '</div>';
+      } else if (diff < 0) {
+        financeExtra =
+          '<div style="padding:10px 12px;background:#edfaf0;border-radius:8px;border-left:3px solid #3aaa35;font-size:12px;color:#4a4a5a;line-height:1.6;margin-bottom:10px">' +
+          '✅ CaaS is <strong>' + $mo(Math.abs(diff)) + ' cheaper per month</strong> than the loan payment — savings stay in your pocket every month.' +
+          '</div>';
+      }
+    }
+
     caasInvestBody.innerHTML =
       '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">' +
-
-        '<div style="flex:1;min-width:180px;padding:14px;background:#fff5f5;border-radius:10px;border:1px solid rgba(192,0,0,0.15)">' +
-          '<div style="font-size:11px;font-weight:700;color:#b00000;letter-spacing:.05em;margin-bottom:8px">✏️ WRITE A CHECK</div>' +
-          '<div style="font-size:22px;font-weight:800;color:#b00000">-' + $d(Math.round(lumpSum)) + '</div>' +
-          '<div style="font-size:11px;color:#888;margin-top:4px">Out of pocket, day 1</div>' +
-          '<div style="font-size:11px;color:#888;margin-top:2px">System depreciates over time</div>' +
-          '<div style="font-size:13px;font-weight:700;color:#b00000;margin-top:10px;padding-top:8px;border-top:1px solid rgba(192,0,0,0.15)">Net yr ' + yr + ': <span style="font-size:16px">-' + $d(Math.round(lumpSum)) + '</span></div>' +
-        '</div>' +
-
+        '<div style="flex:1;min-width:180px;padding:14px;background:#fff5f5;border-radius:10px;border:1px solid rgba(192,0,0,0.15)">' + leftCard + '</div>' +
         '<div style="display:flex;align-items:center;font-size:24px;padding:0 4px">vs</div>' +
-
-        '<div style="flex:1;min-width:180px;padding:14px;background:#f0faf4;border-radius:10px;border:1px solid rgba(58,170,53,0.25)">' +
-          '<div style="font-size:11px;font-weight:700;color:#168a20;letter-spacing:.05em;margin-bottom:8px">✅ CaaS + INVEST</div>' +
-          '<div style="font-size:12px;color:#4a4a5a;line-height:1.8">' +
-            '<div>' + $d(Math.round(lumpSum)) + ' invested at <strong>' + rateShort + '</strong></div>' +
-            '<div style="font-size:18px;font-weight:800;color:#168a20">= ' + $d(Math.round(investedFV)) + '</div>' +
-            '<div>Interest earned: <strong style="color:#168a20">+' + $d(Math.round(interestEarned)) + '</strong></div>' +
-            '<div style="color:#c97d10">CaaS payments: -' + $d(caasTotal) + '</div>' +
-          '</div>' +
-          '<div style="font-size:13px;font-weight:700;color:#168a20;margin-top:10px;padding-top:8px;border-top:1px solid rgba(58,170,53,0.2)">Net yr ' + yr + ': <span style="font-size:16px">+' + $d(Math.round(netPosition)) + '</span></div>' +
-        '</div>' +
-
+        '<div style="flex:1;min-width:180px;padding:14px;background:#f0faf4;border-radius:10px;border:1px solid rgba(58,170,53,0.25)">' + rightCard + '</div>' +
       '</div>' +
-
-      '<div style="padding:12px 14px;background:rgba(58,170,53,0.1);border-radius:8px;border-left:3px solid #3aaa35;font-size:12px;color:#1a3560;line-height:1.7;margin-bottom:10px">' +
-        interestMsg +
-      '</div>' +
-
+      financeExtra +
+      '<div style="padding:12px 14px;background:rgba(58,170,53,0.1);border-radius:8px;border-left:3px solid #3aaa35;font-size:12px;color:#1a3560;line-height:1.7;margin-bottom:10px">' + interestMsg + '</div>' +
       '<div style="padding:10px 12px;background:rgba(201,125,16,0.08);border-radius:8px;border-left:3px solid var(--amber);font-size:12px;color:#4a4a5a;line-height:1.6">' +
-        '💡 CaaS + investing leaves you <strong>' + $d(Math.round(netPosition + lumpSum)) + ' better off</strong> in year ' + yr + ' than writing a check — plus you never own the risk of a depreciating system.' +
+        '💡 CaaS + investing leaves you <strong>' + $d(Math.round(netPosition + lumpSum)) + ' better off</strong> in year ' + yr + ' than ' + (buyPath==='cash'?'writing a check':'financing the system') + ' — plus you never own the risk of a depreciating system.' +
       '</div>';
 
     caasInvestCard.style.display = 'block';
