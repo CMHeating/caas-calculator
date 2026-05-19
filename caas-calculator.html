@@ -331,7 +331,7 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
         <div class="sub">At end of contract — customer chooses</div>
 
         <div class="path-tree">
-          <div class="path-option active" id="path-opt-payoff" onclick="setPath('payoff')">
+          <div class="path-option" id="path-opt-payoff" onclick="setPath('payoff')">
             <div class="path-opt-head">
               <div class="path-dot"></div>
               <div class="path-opt-title">Pay off residual</div>
@@ -342,7 +342,7 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
               <div class="iw d"><input type="number" id="caasResidual" value="0" min="0" step="100" oninput="autoCalc()" onclick="event.stopPropagation()"></div>
             </div>
           </div>
-          <div class="path-option" id="path-opt-continue" onclick="setPath('continue')">
+          <div class="path-option active" id="path-opt-continue" onclick="setPath('continue')">
             <div class="path-opt-head">
               <div class="path-dot"></div>
               <div class="path-opt-title">Continue to year 15</div>
@@ -487,7 +487,7 @@ var period = 15;
 var tab = 'cum';
 var chartInst = null;
 var activePreset = 'good';
-var caasPath = 'payoff';
+var caasPath = 'continue';
 var buyPath  = 'finance';
 var S = { buyC:[], caasC:[], buyM:[], caasM:[], labels:[] };
 
