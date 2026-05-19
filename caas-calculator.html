@@ -879,17 +879,21 @@ function calc() {
       var rateShort      = invCompound === 'monthly' ? '4% HYSA' : (invRate===0.08 ? '8% S&P real' : '10% S&P nom.');
       var coversPct      = Math.round((interestEarned / caasTotal) * 100);
 
+      var buySavings   = Math.max(0, savings * -1); // how much cheaper buying is (0 if CaaS already wins)
+      var trueAdvantage = interestEarned - buySavings; // interest earned minus any buy savings gap
+
       var bottomLine = '';
       var bottomColor = '';
-      if (netAdvantage > 0) {
-        bottomLine  = '🎯 Bottom line: CaaS + invest puts you <strong style="font-size:15px">+' + $d(Math.round(netAdvantage)) + ' ahead</strong> vs writing a check — and you never owned a depreciating system.';
-        bottomColor = 'rgba(58,170,53,0.1)';
-      } else if (interestEarned > Math.abs(savings)) {
-        var trueAdv = interestEarned - Math.abs(savings);
-        bottomLine  = '💡 Bottom line: Even though buying costs less by ' + $d(Math.abs(savings)) + ', investing earns <strong>' + $d(Math.round(interestEarned)) + '</strong> — a true advantage of <strong style="font-size:15px">+' + $d(Math.round(trueAdv)) + '</strong> with CaaS + invest.';
+
+      if (trueAdvantage > 0) {
+        bottomLine  = '🎯 <strong>True advantage: CaaS + invest wins by +' + $d(Math.round(trueAdvantage)) + '</strong>' +
+          (buySavings > 0
+            ? ' — interest earned (' + $d(Math.round(interestEarned)) + ') outweighs buying cheaper (' + $d(Math.round(buySavings)) + ')'
+            : ' — interest earned on top of CaaS already costing less') +
+          '. You keep your capital and never own a depreciating system.';
         bottomColor = 'rgba(58,170,53,0.1)';
       } else {
-        bottomLine  = '📈 Investing the system cost covers <strong>' + coversPct + '%</strong> of your entire CaaS membership — plus fixed payments, no repairs, no aging system.';
+        bottomLine  = '🏠 In this scenario, buying is the better financial choice by <strong>' + $d(Math.round(Math.abs(trueAdvantage))) + '</strong> — buy savings (' + $d(Math.round(buySavings)) + ') exceed the interest earned (' + $d(Math.round(interestEarned)) + '). CaaS still offers peace of mind, fixed payments, and no repair risk.';
         bottomColor = 'rgba(201,125,16,0.08)';
       }
 
