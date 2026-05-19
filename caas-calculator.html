@@ -757,9 +757,7 @@ function calc() {
   document.getElementById('m-invested-sub').textContent = $d(Math.round(bpTax)) + ' at ' + rateShort;
   document.getElementById('m-interest').textContent     = '+' + $d(Math.round(interestEarned));
   document.getElementById('m-interest-sub').textContent = 'investing system cost · ' + rateShort;
-  document.getElementById('m-caas-lbl').textContent     = yr + '-yr CaaS all-in';
-  document.getElementById('m-caas-val').textContent     = $d(caasTotal);
-  document.getElementById('m-caas-avg').textContent     = $mo(caasAvg) + ' avg';
+  // CaaS all-in card removed
 
   var savEl  = document.getElementById('m-sav-val');
   var savSub = document.getElementById('m-sav-sub');
