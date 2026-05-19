@@ -893,6 +893,13 @@ function calc() {
     var interestMsg = '';
     if (interestEarned >= caasTotal) {
       interestMsg = '🎯 <strong>Your interest earned (' + $d(Math.round(interestEarned)) + ') more than covers your entire ' + yr + '-yr CaaS membership (' + $d(caasTotal) + ').</strong> You keep the investment principal AND get a new system every contract.';
+    } else if (savings > 0 && interestEarned > savings) {
+      // Buy wins on total cost BUT interest earned beats the savings gap
+      var trueAdvantage = interestEarned - savings;
+      interestMsg =
+        '⚖️ Yes — buying saves <strong>' + $d(Math.round(savings)) + '</strong> over ' + yr + ' years.<br>' +
+        'But investing the system cost earns <strong style="color:#168a20">' + $d(Math.round(interestEarned)) + '</strong> in interest.<br>' +
+        'Interest earned minus buy savings = <strong style="color:#168a20;font-size:14px">+' + $d(Math.round(trueAdvantage)) + ' true advantage with CaaS + invest.</strong>';
     } else {
       interestMsg = '📈 Your interest earned (<strong>' + $d(Math.round(interestEarned)) + '</strong>) covers <strong>' + coversPct + '%</strong> of your entire ' + yr + '-yr CaaS membership (' + $d(caasTotal) + ').';
     }
@@ -927,6 +934,7 @@ function calc() {
         '<div style="font-size:18px;font-weight:800;color:#168a20">= ' + $d(Math.round(investedFV)) + '</div>' +
         '<div>Interest earned: <strong style="color:#168a20">+' + $d(Math.round(interestEarned)) + '</strong></div>' +
         '<div style="color:#c97d10">CaaS payments: -' + $d(caasTotal) + '</div>' +
+        (savings > 0 ? '<div style="color:#b00000">Buy saves: -' + $d(Math.round(savings)) + '</div>' : '') +
       '</div>' +
       '<div style="font-size:13px;font-weight:700;color:#168a20;margin-top:10px;padding-top:8px;border-top:1px solid rgba(58,170,53,0.2)">Net yr ' + yr + ': <span style="font-size:16px">+' + $d(Math.round(netPosition)) + '</span></div>';
 
