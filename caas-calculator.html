@@ -269,11 +269,11 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
           <div class="field">
             <div class="lbl">Maintenance plan <span class="tip" data-tip="Annual service contract / tune-up. Heat &amp; Cool covers both furnace and AC.">?</span></div>
             <select class="field-select" id="maintPlanSelect" onchange="setMaintPlan(this.value)" style="width:100%;padding:9px 10px;border:1.5px solid #ddd;border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;background:#fff;color:#1a3560;margin-bottom:6px">
-              <option value="379">Heat &amp; Cool (furnace + AC) — $379/yr</option>
-              <option value="207">Furnace or AC only — $207/yr</option>
+              <option value="251.88">Club + Whole System (Heat &amp; Cool) — $251.88/yr</option>
+              <option value="155.88">Club + Furnace or AC/HP — $155.88/yr</option>
               <option value="custom">Custom</option>
             </select>
-            <div class="iw d"><input type="number" id="annualMaint" value="379" min="0" step="10" oninput="autoCalc()"></div>
+            <div class="iw d"><input type="number" id="annualMaint" value="251.88" min="0" step="0.01" oninput="autoCalc()"></div>
           </div>
           <div class="field">
             <div class="lbl">Filters / yr <span class="tip" data-tip="Annual filter replacement cost. ~$50/yr">?</span></div>
@@ -540,10 +540,10 @@ function clearResults() {
 
 // Default values per tier (price editable, rest are defaults)
 var TIER_DEFAULTS = {
-  value:  { apr:9.99, loanTerm:84,  annualMaint:379, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:79,  caasTermMonths:96 },
-  good:   { apr:9.99, loanTerm:84,  annualMaint:379, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:99,  caasTermMonths:96 },
-  better: { apr:9.99, loanTerm:120, annualMaint:379, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:149, caasTermMonths:96 },
-  best:   { apr:9.99, loanTerm:120, annualMaint:379, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:199, caasTermMonths:96 },
+  value:  { apr:9.99, loanTerm:84,  annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:79,  caasTermMonths:96 },
+  good:   { apr:9.99, loanTerm:84,  annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:99,  caasTermMonths:96 },
+  better: { apr:9.99, loanTerm:120, annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:149, caasTermMonths:96 },
+  best:   { apr:9.99, loanTerm:120, annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:199, caasTermMonths:96 },
 };
 
 var TIER_LABELS = { value:'Value', good:'Good', better:'Better', best:'Best', custom:'Custom' };
@@ -567,7 +567,7 @@ function selectPreset(name, btn) {
   document.getElementById('loanTerm').value      = d.loanTerm;
   document.getElementById('annualMaint').value   = d.annualMaint;
   var sel = document.getElementById('maintPlanSelect');
-  sel.value = [379,207].includes(d.annualMaint) ? String(d.annualMaint) : 'custom';
+  sel.value = [251.88, 155.88].includes(Number(d.annualMaint)) ? String(d.annualMaint) : 'custom';
   document.getElementById('annualFilters').value = d.annualFilters;
   document.getElementById('annualRepairs').value = d.annualRepairs;
   document.getElementById('annualRepairsPost').value = d.annualRepairsPost;
