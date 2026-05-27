@@ -138,9 +138,15 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
 .btable td{padding:6px 10px;border-bottom:1px solid #f0ece5;color:var(--text)}
 .btable td:not(:first-child){text-align:right}
 .btable tr.total td{font-weight:700;border-bottom:none;padding-top:9px;border-top:1.5px solid var(--border)}
+.btable tr.true-total td{font-weight:700;border-bottom:none;padding-top:9px;border-top:2px solid var(--navy);background:#eef1f8}
 
 /* ── TIER BADGE on results ── */
 .tier-badge{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:16px}
+
+/* ── RATE PRESETS ── */
+.rate-presets{display:flex;gap:5px;margin-bottom:7px}
+.rpbtn{padding:4px 10px;border:1.5px solid var(--border);border-radius:5px;background:transparent;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;color:var(--muted)}
+.rpbtn.active,.rpbtn:hover{border-color:var(--navy);background:var(--navy);color:#fff}
 
 @media(max-width:720px){
   .form-grid,.two{grid-template-columns:1fr}
@@ -500,7 +506,7 @@ function togglePayoff() {
 
 function setPath(path) {
   caasPath = path;
-  document.getElementById('path-opt-payoff').classList.toggle('active', path === 'payoff');
+  document.getElementById('path-opt-payoff') && document.getElementById('path-opt-payoff').classList.toggle('active', path === 'payoff');
   document.getElementById('path-opt-continue').classList.toggle('active', path === 'continue');
   if (path === 'continue') {
     document.getElementById('caasResidual').value = 0;
@@ -520,7 +526,6 @@ function setBuyPath(path) {
     document.getElementById('invest-href').href = 'investment-calculator.html?lumpSum=' + price;
   }
   if (path === 'finance') {
-    // Restore default APR when switching back to finance
     document.getElementById('apr').value = 9.99;
   }
   clearResults();
@@ -529,12 +534,10 @@ function setBuyPath(path) {
 function clearResults() {
   var r = document.getElementById('results');
   r.classList.remove('show');
-  // Brief flash so HCA sees it cleared
   r.style.opacity = '0';
   setTimeout(function(){ r.style.opacity = ''; }, 150);
 }
 
-// Default values per tier (price editable, rest are defaults)
 var TIER_DEFAULTS = {
   value:  { apr:9.99, loanTerm:84,  annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:79,  caasTermMonths:96 },
   good:   { apr:9.99, loanTerm:84,  annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:99,  caasTermMonths:96 },
@@ -550,7 +553,6 @@ function selectPreset(name, btn) {
   activePreset = name;
 
   if (name === 'custom') {
-    // Clear price so HCA enters their own
     document.getElementById('buyPrice').value = '';
     autoCalc(); return;
   }
@@ -588,7 +590,7 @@ function switchTab(t, btn) {
 }
 
 var invRate = 0.04;
-var invCompound = 'monthly'; // 'monthly' for HYSA, 'annual' for S&P
+var invCompound = 'monthly';
 
 function fvLump(principal, years) {
   if (invCompound === 'monthly') {
@@ -639,9 +641,8 @@ function gc(id) { return document.getElementById(id).checked; }
 
 function calc() {
   var bp  = gv('buyPrice');
-  var bpTax = bp * 1.10; // tax-inclusive buy price
+  var bpTax = bp * 1.10;
 
-  // Show buy price tax callout
   var buyTaxEl = document.getElementById('buy-price-tax-callout');
   var buyTaxTotal = document.getElementById('buy-price-tax-total');
   if (bp > 0) {
@@ -650,12 +651,13 @@ function calc() {
   } else {
     buyTaxEl.style.display = 'none';
   }
+
   var apr = buyPath === 'cash' ? 0 : gv('apr') / 100 / 12;
   var lt  = buyPath === 'cash' ? 0 : (gi('loanTerm') || 120);
   var mnt = gv('annualMaint');
   var flt = gv('annualFilters');
-  var rep     = gv('annualRepairs');       // yr 1-10
-  var repPost = gv('annualRepairsPost');   // yr 11+
+  var rep     = gv('annualRepairs');
+  var repPost = gv('annualRepairsPost');
   var iaq = gv('annualIAQ');
   var cmoRaw = gv('caasMonthly');
   var cmo = cmoRaw;
@@ -667,13 +669,12 @@ function calc() {
   var cRepairs = gc('cRepairs');
   var cIAQ     = gc('cIAQ');
 
-  // Keep invest link updated with current price
   if (buyPath === 'cash' && bp > 0) {
     document.getElementById('invest-href').href = 'investment-calculator.html?lumpSum=' + Math.round(bp);
   }
 
   var months = period * 12;
-  var principal = bpTax; // loan on tax-inclusive price
+  var principal = bpTax;
   var lp = 0;
   if (buyPath === 'finance' && apr > 0 && principal > 0) {
     lp = principal * apr * Math.pow(1+apr,lt) / (Math.pow(1+apr,lt)-1);
@@ -683,20 +684,22 @@ function calc() {
 
   var infRate = gv('inflationRate') / 100;
 
+  // ── Year 15 replacement cost (always anchored to year 15, using current inflation rate) ──
+  var futureCostYr15 = bpTax * Math.pow(1 + infRate, 15);
+
   var mMnt = mnt/12, mFlt = flt/12, mRep = rep/12, mRepPost = repPost/12, mIAQ = iaq/12;
 
   // ── BUY ──
   var buyC = [buyPath === 'cash' ? bpTax : 0], buyM = [buyPath === 'cash' ? bpTax : 0];
   for (var m = 1; m <= months; m++) {
     var inf = Math.pow(1 + infRate, Math.floor((m-1)/12));
-    var mRepNow = m <= 120 ? mRep : mRepPost; // $250/yr first 10yr, $400/yr after
+    var mRepNow = m <= 120 ? mRep : mRepPost;
     var bm = (buyPath === 'finance' && m <= lt ? lp : 0) + (mMnt + mFlt + mRepNow + mIAQ) * inf;
     bm = Math.max(0, bm);
     buyM.push(bm);
     buyC.push(buyC[m-1] + bm);
   }
 
-  // Calculate inflation premium for breakdown table
   var flatOngoing = 0, inflatedOngoing = 0;
   for (var m = 1; m <= months; m++) {
     var mRepNow = m <= 120 ? mRep : mRepPost;
@@ -725,7 +728,6 @@ function calc() {
     caasC.push(caasC[m-1] + cm);
   }
 
-  // Add residual as a one-time lump at contract end month (path A only)
   if (caasPath === 'payoff' && residual > 0 && ctm <= months) {
     for (var i = ctm; i <= months; i++) {
       caasC[i] += residual;
@@ -742,14 +744,12 @@ function calc() {
   var buyTotal  = buyC[months];
   var caasTotal = caasC[months];
 
-  // Hide chart when buy is winning — focus on replacement cost & investment angle instead
   document.getElementById('chart-card').style.display = caasTotal < buyTotal ? 'block' : 'none';
   var savings   = caasTotal - buyTotal;
   var caasAvg   = caasTotal / months;
   var yr = period;
   var rateShort = invCompound === 'monthly' ? '4% HYSA' : (invRate===0.08 ? '8% S&P real' : '10% S&P nom.');
 
-  // Investment-focused metrics
   var investedFV     = fvLump(bpTax, yr);
   var interestEarned = investedFV - bpTax;
   var netAdvantage   = investedFV - caasTotal;
@@ -758,7 +758,6 @@ function calc() {
   document.getElementById('m-invested-sub').textContent = $d(Math.round(bpTax)) + ' at ' + rateShort;
   document.getElementById('m-interest').textContent     = '+' + $d(Math.round(interestEarned));
   document.getElementById('m-interest-sub').textContent = 'investing system cost · ' + rateShort;
-  // CaaS all-in card removed
 
   var savEl  = document.getElementById('m-sav-val');
   var savSub = document.getElementById('m-sav-sub');
@@ -775,7 +774,6 @@ function calc() {
     savSub.textContent = 'after ' + rateShort + ' interest earned';
   }
 
-  // Tier badge
   var tierLabel = TIER_LABELS[activePreset] || 'Custom';
   var badgeEl = document.getElementById('tier-badge');
   badgeEl.textContent = '● ' + tierLabel + (activePreset !== 'custom' ? ' · $' + Math.round(bp).toLocaleString() : ' · Custom quote');
@@ -785,19 +783,15 @@ function calc() {
   var vh = document.getElementById('v-hed');
   var vb = document.getElementById('v-body');
 
-  // Always frame CaaS favorably — investment angle always wins
   if (savings < -100) {
-    // CaaS wins on cost AND invest
     vc.className='verdict cw'; vi.textContent='✅';
     vh.textContent = 'CaaS wins — saves ' + $d(-savings) + ' AND earns ' + $d(Math.round(interestEarned)) + ' in interest';
     vb.textContent = 'CaaS is the clear choice — it costs less over ' + yr + ' years AND investing the system cost at ' + rateShort + ' earns ' + $d(Math.round(interestEarned)) + ' in interest. That\'s a net advantage of +' + $d(Math.round(netAdvantage)) + ' vs writing a check. Predictable payments, no surprise bills, no depreciating asset.';
   } else if (netAdvantage > 0) {
-    // Buy costs less BUT invest wins overall
     vc.className='verdict cw'; vi.textContent='💡';
     vh.textContent = 'CaaS + invest wins by ' + $d(Math.round(netAdvantage)) + ' over ' + yr + ' years';
     vb.textContent = 'Buying appears to save ' + $d(Math.abs(savings)) + ' on cost alone — but investing the system cost at ' + rateShort + ' earns ' + $d(Math.round(interestEarned)) + ' in interest, making CaaS + invest the smarter financial decision by ' + $d(Math.round(netAdvantage)) + '. Keep your capital working for you instead of sinking it into a depreciating system.';
   } else {
-    // Interest doesn't fully offset — but CaaS still has lifestyle advantages
     vc.className='verdict cw'; vi.textContent='✅';
     vh.textContent = 'CaaS — peace of mind, predictable payments, inflation-proof';
     vb.textContent = 'Investing the system cost at ' + rateShort + ' covers ' + Math.round((interestEarned/caasTotal)*100) + '% of your entire CaaS membership. Add in the fixed monthly payment, no repair surprises, no out-of-warranty risk, and a new system waiting when you\'re ready — CaaS is the smarter long-term choice.';
@@ -810,7 +804,6 @@ function calc() {
     ? (residual>0 ? 'Pay off '+$d(residual)+' at mo.'+ctm : 'Pay off at mo.'+ctm)
     : 'Continue to mo.180';
   var postMonths = caasPath === 'continue' ? 0 : Math.max(0, months - ctm);
-  var postYrs    = Math.round(postMonths / 12 * 10) / 10;
   var contractYrs = Math.round(Math.min(ctm, months) / 12 * 10) / 10;
 
   function caasIncludedLabel(annualCost) {
@@ -841,6 +834,7 @@ function calc() {
     }
   }
 
+  // ── Main cost breakdown rows ──
   var rows = [
     ['Equipment (before tax)',          buyPath==='cash' ? $d(bp)+' (cash)' : $d(bp),  $d(cContractPmts)],
     ['Sales tax (10%)',                  buyPath==='cash' ? $d(Math.round(bp*0.10)) : $d(Math.round(bp*0.10))+' (financed)', '✓ in monthly'],
@@ -852,14 +846,33 @@ function calc() {
     ['Repairs yr 11–'+yr+' (out of warranty)',  $d(repPost*(yr-10)),  cRepairs ? '✓ included' : $d(repPost*(yr-10))],
     ['IAQ / UV bulbs ('+yr+' yr)',     $d(iaq*yr),    caasIncludedLabel(iaq)],
     ['Cost inflation ('+infRate*100+'%/yr)',  '+' + $d(Math.round(inflationPremium)) + ' on maint, repairs, filters, IAQ', 'Fixed monthly — inflation-proof'],
-    ['TOTAL',                          $d(buyTotal),  $d(caasTotal)]
+    ['TOTAL ('+yr+'-yr cost of ownership)',   $d(buyTotal),  $d(caasTotal)]
   ];
+
+  // ── Replacement cost at year 15 (always at yr 15 regardless of analysis period) ──
+  var replacementRows = '';
+  if (bp > 0) {
+    var pctIncrease = Math.round(((futureCostYr15 - bpTax) / bpTax) * 100);
+    replacementRows =
+      '<tr><td colspan="3" style="padding:12px 10px 5px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--navy);border-top:2px solid var(--border);background:#f0f4ff">📅 System Replacement · Year 15 (at ' + (infRate*100).toFixed(0) + '% inflation/yr)</td></tr>' +
+      '<tr style="background:#f5f8ff">' +
+        '<td style="font-size:13px">Next system · today\'s ' + $d(Math.round(bpTax)) + ' grows to this by yr 15</td>' +
+        '<td style="text-align:right;font-weight:700;color:#c97d10;font-size:14px">' + $d(Math.round(futureCostYr15)) + '</td>' +
+        '<td style="text-align:right;color:#168a20;font-weight:600">🔄 New contract — no lump sum</td>' +
+      '</tr>' +
+      '<tr class="true-total">' +
+        '<td><strong>True 15-yr cost of ownership</strong> <span style="font-size:11px;font-weight:500;color:var(--muted)">(incl. replacement)</span></td>' +
+        '<td style="text-align:right;color:#c97d10;font-size:15px"><strong>' + $d(Math.round(buyTotal + futureCostYr15)) + '</strong></td>' +
+        '<td style="text-align:right;color:#1a3560;font-size:15px"><strong>' + $d(caasTotal) + '</strong></td>' +
+      '</tr>';
+  }
 
   document.getElementById('btbody').innerHTML =
     rows.map(function(r,i){
       return '<tr'+(i===rows.length-1?' class="total"':'')+'>'+
         '<td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>';
     }).join('') +
+    replacementRows +
     '<tr><td colspan="3" style="padding:10px 10px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#c97d10;border-top:2px solid #f0ece5">Investment Opportunity (' + (invRate*100).toFixed(0) + '% ' + (invCompound==='monthly'?'HYSA':'S&P') + ')</td></tr>' +
     invRows.map(function(r){
       return '<tr style="background:#fffbf5">'+
@@ -868,64 +881,64 @@ function calc() {
 
   document.getElementById('results').classList.add('show');
 
-  // ── CaaS + Invest vs Write a Check ───────────────────────────────
-    var caasInvestCard = document.getElementById('caas-invest-card');
-    var caasInvestBody = document.getElementById('caas-invest-body');
+  // ── CaaS + Invest vs Write a Check ──
+  var caasInvestCard = document.getElementById('caas-invest-card');
+  var caasInvestBody = document.getElementById('caas-invest-body');
 
-    if (bp > 0 && cmoRaw > 0) {
-      var lumpSum        = bpTax;
-      var investedFV     = fvLump(lumpSum, yr);
-      var interestEarned = investedFV - lumpSum;
-      var netAdvantage   = investedFV - caasTotal;
-      var rateShort      = invCompound === 'monthly' ? '4% HYSA' : (invRate===0.08 ? '8% S&P real' : '10% S&P nom.');
-      var coversPct      = Math.round((interestEarned / caasTotal) * 100);
+  if (bp > 0 && cmoRaw > 0) {
+    var lumpSum        = bpTax;
+    var investedFV     = fvLump(lumpSum, yr);
+    var interestEarned = investedFV - lumpSum;
+    var netAdvantage   = investedFV - caasTotal;
+    var rateShort      = invCompound === 'monthly' ? '4% HYSA' : (invRate===0.08 ? '8% S&P real' : '10% S&P nom.');
+    var coversPct      = Math.round((interestEarned / caasTotal) * 100);
 
-      var buySavings   = Math.max(0, savings * -1); // how much cheaper buying is (0 if CaaS already wins)
-      var trueAdvantage = interestEarned - buySavings; // interest earned minus any buy savings gap
+    var buySavings   = Math.max(0, savings * -1);
+    var trueAdvantage = interestEarned - buySavings;
 
-      var bottomLine = '';
-      var bottomColor = '';
+    var bottomLine = '';
+    var bottomColor = '';
 
-      if (trueAdvantage > 0) {
-        bottomLine  = '🎯 <strong>True advantage: CaaS + invest wins by +' + $d(Math.round(trueAdvantage)) + '</strong>' +
-          (buySavings > 0
-            ? ' — interest earned (' + $d(Math.round(interestEarned)) + ') outweighs buying cheaper (' + $d(Math.round(buySavings)) + ')'
-            : ' — interest earned on top of CaaS already costing less') +
-          '. You keep your capital and never own a depreciating system.';
-        bottomColor = 'rgba(58,170,53,0.1)';
-      } else {
-        bottomLine  = '🏠 In this scenario, buying is the better financial choice by <strong>' + $d(Math.round(Math.abs(trueAdvantage))) + '</strong> — buy savings (' + $d(Math.round(buySavings)) + ') exceed the interest earned (' + $d(Math.round(interestEarned)) + '). CaaS still offers peace of mind, fixed payments, and no repair risk.';
-        bottomColor = 'rgba(201,125,16,0.08)';
-      }
-
-      caasInvestBody.innerHTML =
-        '<div style="display:flex;flex-direction:column;gap:10px">' +
-
-          '<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:#f5f8fb;border-radius:10px">' +
-            '<div style="font-size:24px;flex-shrink:0">1️⃣</div>' +
-            '<div style="font-size:13px;color:#4a4a5a;line-height:1.5">Instead of writing a check for <strong>' + $d(Math.round(lumpSum)) + '</strong>, invest it at <strong>' + rateShort + '</strong></div>' +
-          '</div>' +
-
-          '<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:#f0faf4;border-radius:10px;border:1px solid rgba(58,170,53,0.2)">' +
-            '<div style="font-size:24px;flex-shrink:0">2️⃣</div>' +
-            '<div>' +
-              '<div style="font-size:13px;color:#4a4a5a">Over ' + yr + ' years your <strong>' + $d(Math.round(lumpSum)) + '</strong> grows to <strong style="color:#168a20;font-size:16px">' + $d(Math.round(investedFV)) + '</strong></div>' +
-              '<div style="font-size:12px;color:#888;margin-top:2px">Interest earned: <strong style="color:#168a20">+' + $d(Math.round(interestEarned)) + '</strong> — covers <strong style="color:#168a20">' + coversPct + '%</strong> of your CaaS membership</div>' +
-            '</div>' +
-          '</div>' +
-
-          '<div style="padding:13px 15px;border-radius:10px;font-size:13px;color:#1a3560;line-height:1.6;background:' + bottomColor + ';border-left:4px solid #3aaa35">' +
-            bottomLine +
-          '</div>' +
-
-        '</div>';
-
-      caasInvestCard.style.display = 'block';
+    if (trueAdvantage > 0) {
+      bottomLine  = '🎯 <strong>True advantage: CaaS + invest wins by +' + $d(Math.round(trueAdvantage)) + '</strong>' +
+        (buySavings > 0
+          ? ' — interest earned (' + $d(Math.round(interestEarned)) + ') outweighs buying cheaper (' + $d(Math.round(buySavings)) + ')'
+          : ' — interest earned on top of CaaS already costing less') +
+        '. You keep your capital and never own a depreciating system.';
+      bottomColor = 'rgba(58,170,53,0.1)';
     } else {
-      caasInvestCard.style.display = 'none';
+      bottomLine  = '🏠 In this scenario, buying is the better financial choice by <strong>' + $d(Math.round(Math.abs(trueAdvantage))) + '</strong> — buy savings (' + $d(Math.round(buySavings)) + ') exceed the interest earned (' + $d(Math.round(interestEarned)) + '). CaaS still offers peace of mind, fixed payments, and no repair risk.';
+      bottomColor = 'rgba(201,125,16,0.08)';
     }
 
-  // ── Investment Angle ──────────────────────────────────────────────
+    caasInvestBody.innerHTML =
+      '<div style="display:flex;flex-direction:column;gap:10px">' +
+
+        '<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:#f5f8fb;border-radius:10px">' +
+          '<div style="font-size:24px;flex-shrink:0">1️⃣</div>' +
+          '<div style="font-size:13px;color:#4a4a5a;line-height:1.5">Instead of writing a check for <strong>' + $d(Math.round(lumpSum)) + '</strong>, invest it at <strong>' + rateShort + '</strong></div>' +
+        '</div>' +
+
+        '<div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:#f0faf4;border-radius:10px;border:1px solid rgba(58,170,53,0.2)">' +
+          '<div style="font-size:24px;flex-shrink:0">2️⃣</div>' +
+          '<div>' +
+            '<div style="font-size:13px;color:#4a4a5a">Over ' + yr + ' years your <strong>' + $d(Math.round(lumpSum)) + '</strong> grows to <strong style="color:#168a20;font-size:16px">' + $d(Math.round(investedFV)) + '</strong></div>' +
+            '<div style="font-size:12px;color:#888;margin-top:2px">Interest earned: <strong style="color:#168a20">+' + $d(Math.round(interestEarned)) + '</strong> — covers <strong style="color:#168a20">' + coversPct + '%</strong> of your CaaS membership</div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div style="padding:13px 15px;border-radius:10px;font-size:13px;color:#1a3560;line-height:1.6;background:' + bottomColor + ';border-left:4px solid #3aaa35">' +
+          bottomLine +
+        '</div>' +
+
+      '</div>';
+
+    caasInvestCard.style.display = 'block';
+  } else {
+    caasInvestCard.style.display = 'none';
+  }
+
+  // ── Investment Angle ──
   var investCard = document.getElementById('invest-angle-card');
   var investBody = document.getElementById('invest-angle-body');
   var annRate = invRate;
@@ -954,7 +967,6 @@ function calc() {
     var lump = bp * 1.10;
     var ltYrs = Math.round(lt / 12 * 10) / 10;
 
-    // Strategy 1: Invest full system cost, make loan payments, subtract interest
     var fvLumpAt15 = fvLump(lump, yr);
     var netAfterInterest = fvLumpAt15 - intPaid;
     html += '<div style="margin-bottom:12px;padding:12px;background:#f0f4ff;border-radius:8px">' +
@@ -967,7 +979,6 @@ function calc() {
       '<span style="font-size:11px;color:#888">CaaS total cost: ' + $d(caasTotal) + ' &nbsp;|&nbsp; Loan term: ' + ltYrs + ' yrs</span>' +
       '</div></div>';
 
-    // Strategy 2: Monthly gap
     if (diff > 0) {
       var fvAtLoanEnd = fvMonthly(diff, lt);
       var remainingMonths = months - lt;
@@ -1001,15 +1012,14 @@ function calc() {
   investCard.style.display = html ? 'block' : 'none';
   investBody.innerHTML = html;
 
-  // ── Year 15 Replacement Cost ──────────────────────────────────────
+  // ── Year 15 Replacement Cost Card ──
   var rcCard = document.getElementById('replacement-cost-card');
   var rcBody = document.getElementById('replacement-cost-body');
   document.getElementById('rc-yr').textContent = yr;
 
   if (bp > 0) {
-    var todayCost   = bpTax;                                    // tax-inclusive today
-    var futureCost  = todayCost * Math.pow(1 + infRate, yr);   // inflated to year 15
-    var increase    = futureCost - todayCost;
+    var todayCost   = bpTax;
+    var increase    = futureCostYr15 - todayCost;
     var pctIncrease = Math.round((increase / todayCost) * 100);
 
     rcBody.innerHTML =
@@ -1024,19 +1034,19 @@ function calc() {
         '<div style="display:flex;align-items:center;font-size:20px;color:#c97d10;padding:0 4px">→</div>' +
 
         '<div style="flex:1;min-width:160px;padding:12px;background:#fff8f0;border-radius:8px;text-align:center;border:1px solid rgba(201,125,16,0.2)">' +
-          '<div style="font-size:11px;color:#888;margin-bottom:4px">Replacement cost in yr ' + yr + '</div>' +
-          '<div style="font-size:22px;font-weight:800;color:#c97d10">' + $d(Math.round(futureCost)) + '</div>' +
+          '<div style="font-size:11px;color:#888;margin-bottom:4px">Replacement cost at year 15</div>' +
+          '<div style="font-size:22px;font-weight:800;color:#c97d10">' + $d(Math.round(futureCostYr15)) + '</div>' +
           '<div style="font-size:11px;color:#888">at ' + (infRate*100).toFixed(0) + '% inflation/yr · incl. 10% tax</div>' +
         '</div>' +
 
       '</div>' +
 
       '<div style="padding:10px 12px;background:#f0f7f0;border-radius:8px;border-left:3px solid #3aaa35;font-size:12px;color:#4a4a5a;line-height:1.6;margin-bottom:10px">' +
-        '📈 That\'s <strong>+' + $d(Math.round(increase)) + ' (' + pctIncrease + '% more)</strong> to replace this system out-of-pocket in year ' + yr + '.' +
+        '📈 That\'s <strong>+' + $d(Math.round(increase)) + ' (' + pctIncrease + '% more)</strong> to replace this system out-of-pocket at year 15.' +
       '</div>' +
 
       '<div style="padding:10px 12px;background:rgba(201,125,16,0.08);border-radius:8px;border-left:3px solid var(--amber);font-size:12px;color:#4a4a5a;line-height:1.6">' +
-        '🔄 <strong>Ready for a new system?</strong> In year ' + yr + ', replacing this system will cost an estimated <strong>' + $d(Math.round(futureCost)) + '</strong> out-of-pocket. Simply sign a new CaaS contract instead — 15-year warranty, peace-of-mind cost of ownership built in, and inflation-free payments moving forward.' +
+        '🔄 <strong>Ready for a new system?</strong> At year 15, replacing this system will cost an estimated <strong>' + $d(Math.round(futureCostYr15)) + '</strong> out-of-pocket. Simply sign a new CaaS contract instead — 15-year warranty, peace-of-mind cost of ownership built in, and inflation-free payments moving forward.' +
       '</div>';
 
     rcCard.style.display = 'block';
@@ -1072,7 +1082,6 @@ function renderChart(labels, buyData, caasData) {
   });
 }
 
-// Load Good preset on start
 document.addEventListener('DOMContentLoaded', function() {
   selectPreset('good', document.getElementById('p-good'));
 });
