@@ -183,28 +183,45 @@ input[type=number]:focus,select:focus{outline:none;border-color:var(--navy);back
 
 <div class="wrap">
 
-  <div class="eyebrow">Select a system tier · enter your quote price on Custom</div>
+  <div class="eyebrow">Select brand + comfort tier · enter your quote price on Custom</div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-body">
+      <div class="field">
+        <div class="lbl">Brand / equipment family</div>
+        <select id="brandSelect" onchange="selectBrand(this.value)" style="width:100%">
+          <option value="ameristar">Ameristar</option>
+          <option value="goodman">Goodman</option>
+          <option value="daikin">Daikin</option>
+          <option value="american_standard">American Standard</option>
+          <option value="midea">Midea EVOX</option>
+          <option value="mitsubishi">Mitsubishi</option>
+        </select>
+        <div id="brandTierNote" style="font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5"></div>
+      </div>
+    </div>
+  </div>
 
   <div class="presets">
 
     <div class="preset t-value" id="p-value" onclick="selectPreset('value',this)">
       <div class="pname">Value</div>
-      <div class="pcaption">Entry-level system</div>
+      <div class="pcaption">Payment-first option</div>
     </div>
 
     <div class="preset t-good active" id="p-good" onclick="selectPreset('good',this)">
       <div class="pname">Good</div>
-      <div class="pcaption">Single-stage system</div>
+      <div class="pcaption">Balanced comfort/value</div>
     </div>
 
     <div class="preset t-better" id="p-better" onclick="selectPreset('better',this)">
       <div class="pname">Better</div>
-      <div class="pcaption">2-stage system</div>
+      <div class="pcaption">Higher comfort/efficiency</div>
     </div>
 
     <div class="preset t-best" id="p-best" onclick="selectPreset('best',this)">
       <div class="pname">Best</div>
-      <div class="pcaption">Variable speed, full system</div>
+      <div class="pcaption">Flagship comfort system</div>
     </div>
 
     <div class="preset t-custom" id="p-custom" onclick="selectPreset('custom',this)">
@@ -538,26 +555,96 @@ function clearResults() {
   setTimeout(function(){ r.style.opacity = ''; }, 150);
 }
 
+var activeBrand = 'ameristar';
+
+var BRAND_LABELS = {
+  ameristar: 'Ameristar',
+  goodman: 'Goodman',
+  daikin: 'Daikin',
+  american_standard: 'American Standard',
+  midea: 'Midea EVOX',
+  mitsubishi: 'Mitsubishi'
+};
+
+var BRAND_TIER_DEFAULTS = {
+  ameristar: {
+    value:  { price:6500,  caasMonthly:79,  note:'Ameristar Value · entry payment-focused system' },
+    good:   { price:8000,  caasMonthly:99,  note:'Ameristar Good · practical upgrade package' },
+    better: { price:10500, caasMonthly:129, note:'Ameristar Better · stronger comfort package' },
+    best:   { price:12500, caasMonthly:149, note:'Ameristar Best · highest Ameristar positioning' }
+  },
+  goodman: {
+    value:  { price:7000,  caasMonthly:89,  note:'Goodman Value · entry replacement system' },
+    good:   { price:9000,  caasMonthly:109, note:'Goodman Good · balanced system' },
+    better: { price:11500, caasMonthly:139, note:'Goodman Better · upgraded comfort system' },
+    best:   { price:14000, caasMonthly:169, note:'Goodman Best · top Goodman package' }
+  },
+  daikin: {
+    value:  { price:8500,  caasMonthly:99,  note:'Daikin Value · entry Daikin package' },
+    good:   { price:11000, caasMonthly:129, note:'Daikin Good · balanced Daikin comfort' },
+    better: { price:14500, caasMonthly:169, note:'Daikin Better · inverter/comfort focused' },
+    best:   { price:18000, caasMonthly:209, note:'Daikin Best · premium Daikin comfort system' }
+  },
+  american_standard: {
+    value:  { price:9000,  caasMonthly:109, note:'American Standard Value · Silver entry package' },
+    good:   { price:12000, caasMonthly:149, note:'American Standard Good · Silver/Gold comfort package' },
+    better: { price:15500, caasMonthly:189, note:'American Standard Better · Gold/variable comfort package' },
+    best:   { price:19500, caasMonthly:239, note:'American Standard Best · Platinum premium comfort package' }
+  },
+  midea: {
+    value:  { price:11000, caasMonthly:129, note:'Midea Value · entry EVOX inverter package' },
+    good:   { price:13500, caasMonthly:159, note:'Midea Good · EVOX balanced inverter package' },
+    better: { price:16500, caasMonthly:199, note:'Midea Better · higher-performance EVOX package' },
+    best:   { price:20000, caasMonthly:249, note:'Midea Best · flagship EVOX inverter comfort package' }
+  },
+  mitsubishi: {
+    value:  { price:12500, caasMonthly:149, note:'Mitsubishi Value · entry Mitsubishi package' },
+    good:   { price:15500, caasMonthly:189, note:'Mitsubishi Good · M-Series comfort package' },
+    better: { price:19500, caasMonthly:239, note:'Mitsubishi Better · Hyper-Heat comfort package' },
+    best:   { price:24000, caasMonthly:299, note:'Mitsubishi Best · flagship premium comfort package' }
+  }
+};
+
 var TIER_DEFAULTS = {
-  value:  { apr:9.99, loanTerm:84,  annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:79,  caasTermMonths:96 },
-  good:   { apr:9.99, loanTerm:84,  annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:99,  caasTermMonths:96 },
-  better: { apr:9.99, loanTerm:120, annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:149, caasTermMonths:96 },
-  best:   { apr:9.99, loanTerm:120, annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasMonthly:199, caasTermMonths:96 },
+  value:  { apr:9.99, loanTerm:84,  annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasTermMonths:96 },
+  good:   { apr:9.99, loanTerm:84,  annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasTermMonths:96 },
+  better: { apr:9.99, loanTerm:120, annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasTermMonths:96 },
+  best:   { apr:9.99, loanTerm:120, annualMaint:251.88, annualFilters:180, annualRepairs:250, annualRepairsPost:400, caasTermMonths:96 },
 };
 
 var TIER_LABELS = { value:'Value', good:'Good', better:'Better', best:'Best', custom:'Custom' };
 
+function selectBrand(brand) {
+  activeBrand = brand;
+  updateBrandTierNote();
+  selectPreset(activePreset, document.getElementById('p-' + activePreset));
+}
+
+function updateBrandTierNote() {
+  var noteEl = document.getElementById('brandTierNote');
+  if (!noteEl) return;
+  if (activePreset === 'custom') {
+    noteEl.textContent = BRAND_LABELS[activeBrand] + ' · Custom quote';
+    return;
+  }
+  var b = BRAND_TIER_DEFAULTS[activeBrand];
+  var tier = b && b[activePreset];
+  noteEl.textContent = tier ? tier.note : '';
+}
+
 function selectPreset(name, btn) {
   document.querySelectorAll('.preset').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
+  if (btn) btn.classList.add('active');
   activePreset = name;
 
   if (name === 'custom') {
     document.getElementById('buyPrice').value = '';
+    updateBrandTierNote();
     autoCalc(); return;
   }
 
-  var price = { value:6500, good:8500, better:12500, best:17000 }[name] || 0;
+  var brandTier = BRAND_TIER_DEFAULTS[activeBrand][name];
+  var price = brandTier.price || 0;
   var d = TIER_DEFAULTS[name];
 
   document.getElementById('buyPrice').value      = price;
@@ -569,9 +656,10 @@ function selectPreset(name, btn) {
   document.getElementById('annualFilters').value = d.annualFilters;
   document.getElementById('annualRepairs').value = d.annualRepairs;
   document.getElementById('annualRepairsPost').value = d.annualRepairsPost;
-  document.getElementById('caasMonthly').value   = d.caasMonthly;
+  document.getElementById('caasMonthly').value   = brandTier.caasMonthly;
   document.getElementById('caasTermMonths').value= d.caasTermMonths;
 
+  updateBrandTierNote();
   autoCalc();
 }
 
@@ -776,7 +864,7 @@ function calc() {
 
   var tierLabel = TIER_LABELS[activePreset] || 'Custom';
   var badgeEl = document.getElementById('tier-badge');
-  badgeEl.textContent = '● ' + tierLabel + (activePreset !== 'custom' ? ' · $' + Math.round(bp).toLocaleString() : ' · Custom quote');
+  badgeEl.textContent = '● ' + BRAND_LABELS[activeBrand] + ' · ' + tierLabel + (activePreset !== 'custom' ? ' · $' + Math.round(bp).toLocaleString() : ' · Custom quote');
 
   var vc = document.getElementById('v-card');
   var vi = document.getElementById('v-icon');
